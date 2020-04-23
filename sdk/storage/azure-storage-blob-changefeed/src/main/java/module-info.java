@@ -3,7 +3,7 @@
 
 module com.azure.storage.blob.changefeed {
     requires transitive com.azure.storage.blob;
-    requires org.apache.avro;
+    requires transitive com.azure.storage.internal.avro;
 
     exports com.azure.storage.blob.changefeed;
     exports com.azure.storage.blob.changefeed.models;

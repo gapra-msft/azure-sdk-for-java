@@ -134,6 +134,29 @@ class AvroParserTest extends Specification {
         return match
     }
 
+    def "Parse CF"() {
+        setup:
+        AvroParser parser = new AvroParser()
+        String fileName = "changefeed.avro"
+        ClassLoader classLoader = getClass().getClassLoader()
+        File f = new File(classLoader.getResource(fileName).getFile())
+        Path path = Paths.get(f.getAbsolutePath())
+        Flux<ByteBuffer> file = FluxUtil.readFile(AsynchronousFileChannel.open(path, StandardOpenOption.READ))
+
+        expect:
+        file.concatMap({buffer -> parser.parse(buffer)})
+        .collectList()
+        .block();
+
+//        when:
+//        def verifier = StepVerifier.create(file
+//            .concatMap({ buffer -> parser.parse(buffer) })
+//        )
+//        then:
+//        verifier.expectNextCount(1000)
+//        .expectComplete()
+    }
+
     /* TODO (gapra) : Once this is in the same branch as QQ and CF, add network tests for both of them. */
 
 }

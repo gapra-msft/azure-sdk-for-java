@@ -56,7 +56,7 @@ public class AvroEnumSchema extends AvroSchema {
     private void onIndex(Object index) {
         AvroUtils.checkInteger("'index'", index);
         Integer i = (Integer) index;
-        if (i <= 0 || i >= this.values.size()) {
+        if (i < 0 || i >= this.values.size()) {
             throw logger.logExceptionAsError(new IllegalArgumentException("Invalid index to parse enum"));
         }
         /* Using the zero-based index, get the appropriate symbol, then we're done. */

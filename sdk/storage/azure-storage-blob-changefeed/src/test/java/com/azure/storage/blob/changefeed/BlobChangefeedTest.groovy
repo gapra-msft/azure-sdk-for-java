@@ -1,5 +1,12 @@
 package com.azure.storage.blob.changefeed
 
+import com.azure.storage.blob.BlobServiceAsyncClient
+import com.azure.storage.blob.BlobServiceClientBuilder
+import com.azure.storage.common.StorageSharedKeyCredential
+import com.azure.storage.internal.avro.implementation.AvroParser
+import com.azure.storage.internal.avro.implementation.AvroParserState
+import reactor.test.StepVerifier
+
 class BlobChangefeedTest extends APISpec {
 
 //    def "basic sync implementation"() {
@@ -348,16 +355,31 @@ class BlobChangefeedTest extends APISpec {
 //        sv.expectNextCount(1201).verifyComplete()
 //    }
 //
-//    def "real cf"() {
-//        when:
-//        def sv = StepVerifier.create(
-//            new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
-//            .buildAsyncClient().getEvents()
-//        )
-//        then:
-//        sv.expectNextCount(1202)
-//            .verifyComplete()
-//    }
+    def "real cf"() {
+        when:
+        def sv = StepVerifier.create(
+            new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
+            .buildAsyncClient().getEvents()
+        )
+        then:
+        sv.expectNextCount(2000)
+            .verifyComplete()
+    }
+
+
+    def "CF avro parser network"() {
+        expect:
+        AvroParser parser = new AvroParser();
+
+        List<Object> data = primaryBlobServiceAsyncClient
+            .getBlobContainerAsyncClient('$blobchangefeed')
+            .getBlobAsyncClient("log/00/2020/03/02/2300/00000.avro")
+            .download()
+            .concatMap({b -> parser.parse(b)})
+            .collectList()
+            .block();
+        System.out.println(data.size());
+    }
 //
 //    def "real cf start end"() {
 //        when:

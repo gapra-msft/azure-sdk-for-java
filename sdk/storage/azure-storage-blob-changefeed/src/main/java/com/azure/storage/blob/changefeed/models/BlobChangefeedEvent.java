@@ -3,9 +3,11 @@
 
 package com.azure.storage.blob.changefeed.models;
 
-import org.apache.avro.generic.GenericRecord;
+import com.azure.storage.internal.avro.implementation.AvroParser;
+import com.azure.storage.internal.avro.implementation.schema.primitive.AvroNullSchema;
 
 import java.time.OffsetDateTime;
+import java.util.Map;
 
 public class BlobChangefeedEvent {
     private final String topic;
@@ -29,7 +31,7 @@ public class BlobChangefeedEvent {
         this.metadataVersion = metadataVersion;
     }
 
-    public static BlobChangefeedEvent fromRecord(GenericRecord record) {
+    public static BlobChangefeedEvent fromRecord(Map<String, Object> record) {
         Object topic = record.get("topic");
         Object subject = record.get("subject");
         Object eventType = record.get("eventType");
@@ -39,15 +41,20 @@ public class BlobChangefeedEvent {
         Object dataVersion = record.get("dataVersion");
         Object metadataVersion = record.get("metadataVersion");
 
-        return new BlobChangefeedEvent(topic == null ? null : topic.toString(),
-            subject == null ? null : subject.toString(),
-            eventType == null ? null : BlobChangefeedEventType.fromString(eventType.toString()),
-            eventTime == null ? null : OffsetDateTime.parse(eventTime.toString()),
-            id == null ? null : id.toString(),
-            data == null ? null : BlobChangefeedEventData.fromRecord((GenericRecord) data),
-            dataVersion == null ? null : (Long) dataVersion,
-            metadataVersion== null ? null : metadataVersion.toString());
+        return new BlobChangefeedEvent(isNull(topic) ? null : topic.toString(),
+            isNull(subject) ? null : subject.toString(),
+            isNull(eventType) ? null : BlobChangefeedEventType.fromString(eventType.toString()),
+            isNull(eventTime) ? null : OffsetDateTime.parse(eventTime.toString()),
+            isNull(id) ? null : id.toString(),
+            isNull(data) ? null : BlobChangefeedEventData.fromRecord((Map<String, Object>) data),
+            isNull(dataVersion) ? null : (Long) dataVersion,
+            isNull(metadataVersion) ? null : metadataVersion.toString());
     }
+
+    static boolean isNull(Object o) {
+        return o == null || o instanceof AvroNullSchema.Null;
+    }
+
 
     public String getTopic() {
         return topic;

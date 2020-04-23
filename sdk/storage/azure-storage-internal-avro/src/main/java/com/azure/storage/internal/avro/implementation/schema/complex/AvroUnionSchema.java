@@ -59,7 +59,7 @@ public class AvroUnionSchema extends AvroSchema {
     private void onIndex(Object index) {
         AvroUtils.checkInteger("'index'", index);
         Integer i = (Integer) index;
-        if (i <= 0 || i >= this.types.size()) {
+        if (i < 0 || i >= this.types.size()) {
             throw logger.logExceptionAsError(new IllegalArgumentException("Invalid index to parse union"));
         }
         /* Using the zero-based index, get the appropriate type. */

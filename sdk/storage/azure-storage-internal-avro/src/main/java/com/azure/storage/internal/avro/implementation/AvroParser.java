@@ -3,6 +3,9 @@
 
 package com.azure.storage.internal.avro.implementation;
 
+import com.azure.storage.blob.BlobServiceAsyncClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.internal.avro.implementation.schema.AvroSchema;
 import com.azure.storage.internal.avro.implementation.schema.AvroType;
 import com.azure.storage.internal.avro.implementation.schema.file.AvroBlockSchema;
@@ -12,6 +15,7 @@ import reactor.core.publisher.Flux;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A class that represents a push based AvroParser that can parse avro data from a reactive stream.
@@ -84,7 +88,11 @@ public class AvroParser {
      */
     public Flux<Object> parse(ByteBuffer buffer) {
         /* Cache the buffer as part of state. */
-        this.state.write(buffer);
+        ByteBuffer allocatedBuffer = ByteBuffer.allocate(buffer.remaining());
+        allocatedBuffer.put(buffer);
+        allocatedBuffer.position(0);
+
+        this.state.write(allocatedBuffer);
 
         /* Keep progressing in parsing schemas while able to make progress. */
         AvroSchema schema = this.state.peekFromStack();
@@ -110,6 +118,24 @@ public class AvroParser {
         }
 
         return result;
+    }
+
+    public static void main(String[] args) {
+        AvroParser parser = new AvroParser();
+
+        BlobServiceAsyncClient c = new BlobServiceClientBuilder()
+            .endpoint("https://seanchangefeedstage.blob.core.windows.net")
+            .credential(new StorageSharedKeyCredential("seanchangefeedstage", "XbDHF5F/HxkQ8gil8QvI99D07ppEN64lBQOuU0h68T//hps7C2Iu+UUviIQgK6vSKGD22dmn4ohXaVg7DhUFIA=="))
+            .buildAsyncClient();
+
+        List<Object> data = c
+            .getBlobContainerAsyncClient("$blobchangefeed")
+            .getBlobAsyncClient("log/00/2019/11/01/1700/00000.avro")
+            .download()
+            .concatMap(parser::parse)
+            .collectList()
+            .block();
+        System.out.println(data.size());
     }
 
 }

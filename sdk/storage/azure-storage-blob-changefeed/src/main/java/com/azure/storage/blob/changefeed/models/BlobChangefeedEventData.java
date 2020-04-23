@@ -1,7 +1,9 @@
 package com.azure.storage.blob.changefeed.models;
 
 import com.azure.storage.blob.models.BlobType;
-import org.apache.avro.generic.GenericRecord;
+import com.azure.storage.internal.avro.implementation.schema.primitive.AvroNullSchema;
+
+import java.util.Map;
 
 public class BlobChangefeedEventData {
 
@@ -37,7 +39,7 @@ public class BlobChangefeedEventData {
         this.sequencer = sequencer;
     }
 
-    public static BlobChangefeedEventData fromRecord(GenericRecord data) {
+    public static BlobChangefeedEventData fromRecord(Map<String, Object> data) {
         Object api = data.get("api");
         Object clientRequestId = data.get("clientRequestId");
         Object requestId = data.get("requestId");
@@ -52,19 +54,19 @@ public class BlobChangefeedEventData {
         Object recursive = data.get("recursive");
         Object sequencer = data.get("sequencer");
 
-        return new BlobChangefeedEventData(api == null ? null : api.toString(),
-            clientRequestId == null ? null : clientRequestId.toString(),
-            requestId == null ? null : requestId.toString(),
-            eTag == null ? null : eTag.toString(),
-            contentType == null ? null : contentType.toString(),
-            contentLength == null ? null : (Long) contentLength,
-            blobType == null ? null : BlobType.fromString(blobType.toString()),
-            contentOffset == null ? null : (Long) contentOffset,
-            destinationUrl == null ? null : destinationUrl.toString(),
-            sourceUrl == null ? null : sourceUrl.toString(),
-            blobUrl == null ? null : blobUrl.toString(),
-            recursive == null ? null : (Boolean) recursive,
-            sequencer == null ? null : sequencer.toString());
+        return new BlobChangefeedEventData(BlobChangefeedEvent.isNull(api) ? null : api.toString(),
+            BlobChangefeedEvent.isNull(clientRequestId) ? null : clientRequestId.toString(),
+            BlobChangefeedEvent.isNull(requestId) ? null : requestId.toString(),
+            BlobChangefeedEvent.isNull(eTag) ? null : eTag.toString(),
+            BlobChangefeedEvent.isNull(contentType) ? null : contentType.toString(),
+            BlobChangefeedEvent.isNull(contentLength) ? null : (Long) contentLength,
+            BlobChangefeedEvent.isNull(blobType) ? null : BlobType.fromString(blobType.toString()),
+            BlobChangefeedEvent.isNull(contentOffset) ? null : (Long) contentOffset,
+            BlobChangefeedEvent.isNull(destinationUrl) ? null : destinationUrl.toString(),
+            BlobChangefeedEvent.isNull(sourceUrl) ? null : sourceUrl.toString(),
+            BlobChangefeedEvent.isNull(blobUrl) ? null : blobUrl.toString(),
+            BlobChangefeedEvent.isNull(recursive) ? null : (Boolean) recursive,
+            BlobChangefeedEvent.isNull(sequencer) ? null : sequencer.toString());
     }
 
     public String getApi() {

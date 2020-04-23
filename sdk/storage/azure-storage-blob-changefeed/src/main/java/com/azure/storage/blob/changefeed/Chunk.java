@@ -1,21 +1,18 @@
 package com.azure.storage.blob.changefeed;
 
-import com.azure.core.util.FluxUtil;
 import com.azure.core.util.logging.ClientLogger;
 import com.azure.storage.blob.BlobContainerAsyncClient;
+import com.azure.storage.blob.BlobServiceAsyncClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.changefeed.implementation.util.BlobChangefeedCursor;
 import com.azure.storage.blob.changefeed.implementation.util.BlobChangefeedEventWrapper;
 import com.azure.storage.blob.changefeed.models.BlobChangefeedEvent;
-import org.apache.avro.file.DataFileStream;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericRecord;
+import com.azure.storage.common.StorageSharedKeyCredential;
+import com.azure.storage.internal.avro.implementation.AvroParser;
 import reactor.core.publisher.Flux;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Gets events for a chunk.
@@ -44,56 +41,21 @@ class Chunk {
         this.client = client;
         this.chunkPath = chunkPath;
         this.shardCursor = shardCursor;
-        this.eventNumber = 0;
+        this.eventNumber = -1;
         this.userCursor = userCursor;
+        System.out.println(chunkPath);
     }
 
     Flux<BlobChangefeedEventWrapper> getEvents() {
         /* Download Avro data file. */
         /* TODO (gapra): Lazy download. */
+        AvroParser parser = new AvroParser();
         return client.getBlobAsyncClient(chunkPath)
-            .download().reduce(new ByteArrayOutputStream(), (os, buffer) -> {
-                try {
-                    os.write(FluxUtil.byteBufferToArray(buffer));
-                } catch (IOException e) {
-                    throw logger.logExceptionAsError(new UncheckedIOException(e));
-                }
-                return os;
-            })
-            .map(os -> new ByteArrayInputStream(os.toByteArray()))
-            /* Parse Avro for events. */
-            .flatMapMany(avro -> {
-                DataFileStream<GenericRecord> parsedStream = null;
-                try {
-                   parsedStream = new DataFileStream<>(avro, new GenericDatumReader<>());
-                } catch (IOException e) {
-                    throw logger.logExceptionAsError(new UncheckedIOException(e));
-                }
-                ArrayList<BlobChangefeedEventWrapper> events = new ArrayList<>();
-                while (parsedStream.hasNext()) {
-                    BlobChangefeedCursor eventCursor = shardCursor.toEventCursor(eventNumber);
-                    GenericRecord r = parsedStream.next();
-                    boolean collectEvents = false;
-                    if (userCursor == null) {
-                        collectEvents = true;
-                    } else {
-                        if (userCursor.isEventToBeProcessed() == null || !userCursor.isEventToBeProcessed()) {
-                            if (userCursor.equals(eventCursor)) {
-                                userCursor.setEventToBeProcessed(true);
-                            }
-                        } else {
-                            collectEvents = true;
-                        }
-                    }
-                    if (collectEvents) {
-                        BlobChangefeedEventWrapper wrapper
-                            = new BlobChangefeedEventWrapper(BlobChangefeedEvent.fromRecord(r),
-                            eventCursor);
-                        events.add(wrapper);
-                    }
-                    eventNumber++;
-                }
-                return Flux.fromIterable(events);
+            .download()
+            .concatMap(parser::parse)
+            .map(object -> {
+                BlobChangefeedCursor eventCursor = shardCursor.toEventCursor(eventNumber++);
+                return new BlobChangefeedEventWrapper(BlobChangefeedEvent.fromRecord((Map<String, Object>) object), eventCursor);
             });
     }
 }
