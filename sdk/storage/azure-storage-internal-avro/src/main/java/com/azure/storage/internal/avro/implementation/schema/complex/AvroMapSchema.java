@@ -48,14 +48,14 @@ public class AvroMapSchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
         /* Read the block size, call onBlockCount. */
         AvroLongSchema blockSchema = new AvroLongSchema(
             this.state,
             this::onBlockCount
         );
-        blockSchema.add();
+        blockSchema.pushToStack();
     }
 
     /**
@@ -77,7 +77,7 @@ public class AvroMapSchema extends AvroSchema {
                 this.state,
                 this::onKey
             );
-            keySchema.add();
+            keySchema.pushToStack();
         /* If blockCount < 0, use absolute value, read the byteCount, call onByteCount. */
         } else {
             this.blockCount = -bc;
@@ -85,7 +85,7 @@ public class AvroMapSchema extends AvroSchema {
                 this.state,
                 this::onByteCount
             );
-            byteCountSchema.add();
+            byteCountSchema.pushToStack();
         }
     }
 
@@ -102,7 +102,7 @@ public class AvroMapSchema extends AvroSchema {
             this.state,
             this::onKey
         );
-        keySchema.add();
+        keySchema.pushToStack();
     }
 
     /**
@@ -119,7 +119,7 @@ public class AvroMapSchema extends AvroSchema {
             this.state,
             this::onValue
         );
-        valueSchema.add();
+        valueSchema.pushToStack();
     }
 
     /**
@@ -140,14 +140,14 @@ public class AvroMapSchema extends AvroSchema {
                 this.state,
                 this::onBlockCount
             );
-            blockCountSchema.add();
+            blockCountSchema.pushToStack();
             /* If blockCount != 0, there are more key/value pairs in the block, read another key and call onKey. */
         } else {
             AvroStringSchema keySchema = new AvroStringSchema(
                 this.state,
                 this::onKey
             );
-            keySchema.add();
+            keySchema.pushToStack();
         }
     }
 

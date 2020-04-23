@@ -32,8 +32,8 @@ public class AvroDoubleSchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
     }
 
     @Override
@@ -53,6 +53,6 @@ public class AvroDoubleSchema extends AvroSchema {
     @Override
     public boolean canProgress() {
         /* State must have at least DOUBLE_SIZE bytes to progres on a double. */
-        return this.state.contains(AvroConstants.DOUBLE_SIZE);
+        return this.state.sizeGreaterThan(AvroConstants.DOUBLE_SIZE);
     }
 }

@@ -32,8 +32,8 @@ public class AvroFloatSchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
     }
 
     @Override
@@ -53,6 +53,6 @@ public class AvroFloatSchema extends AvroSchema {
     @Override
     public boolean canProgress() {
         /* State must have at least FLOAT_SIZE bytes to progress on a float. */
-        return this.state.contains(AvroConstants.FLOAT_SIZE);
+        return this.state.sizeGreaterThan(AvroConstants.FLOAT_SIZE);
     }
 }

@@ -67,7 +67,7 @@ public abstract class AvroSchema {
      * Adds a schema to the state's stack.
      * For complex types, this includes adding the initial child schema to make progress.
      */
-    public abstract void add();
+    public abstract void pushToStack();
 
     /**
      * Makes some progress in parsing the type.
@@ -91,7 +91,7 @@ public abstract class AvroSchema {
     /**
      * Calls the result handler.
      */
-    public void publish() {
+    public void publishResult() {
         this.onResult.accept(result);
     }
 

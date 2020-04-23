@@ -27,14 +27,14 @@ public class AvroIntegerSchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
         /* Read the Long, then convert it to an Integer. */
         AvroLongSchema numberSchema = new AvroLongSchema(
             this.state,
             this::onNumber
         );
-        numberSchema.add();
+        numberSchema.pushToStack();
     }
 
     /**

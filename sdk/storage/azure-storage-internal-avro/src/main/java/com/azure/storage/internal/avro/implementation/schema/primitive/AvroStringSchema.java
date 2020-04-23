@@ -32,15 +32,15 @@ public class AvroStringSchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
 
         /* Read the byte, call onBytes. */
         AvroBytesSchema bytesSchema = new AvroBytesSchema(
             this.state,
             this::onBytes
         );
-        bytesSchema.add();
+        bytesSchema.pushToStack();
     }
 
     /**

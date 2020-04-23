@@ -45,14 +45,14 @@ public class AvroArraySchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
         /* Read the block size, call onBlockCount. */
         AvroLongSchema blockCountSchema = new AvroLongSchema(
             this.state,
             this::onBlockCount
         );
-        blockCountSchema.add();
+        blockCountSchema.pushToStack();
     }
 
     /**
@@ -75,7 +75,7 @@ public class AvroArraySchema extends AvroSchema {
                 this.state,
                 this::onItem
             );
-            itemSchema.add();
+            itemSchema.pushToStack();
         /* If blockCount < 0, use absolute value, read the byteCount, call onByteCount. */
         } else {
             this.blockCount = -bc;
@@ -83,7 +83,7 @@ public class AvroArraySchema extends AvroSchema {
                 this.state,
                 this::onByteCount
             );
-            byteCountSchema.add();
+            byteCountSchema.pushToStack();
         }
     }
 
@@ -101,7 +101,7 @@ public class AvroArraySchema extends AvroSchema {
             this.state,
             this::onItem
         );
-        itemSchema.add();
+        itemSchema.pushToStack();
     }
 
     /**
@@ -122,7 +122,7 @@ public class AvroArraySchema extends AvroSchema {
                 this.state,
                 this::onBlockCount
             );
-            blockCountSchema.add();
+            blockCountSchema.pushToStack();
         /* If blockCount != 0, there are more items in the block, read another item and call onItem. */
         } else {
             AvroSchema itemSchema = getSchema(
@@ -130,7 +130,7 @@ public class AvroArraySchema extends AvroSchema {
                 this.state,
                 this::onItem
             );
-            itemSchema.add();
+            itemSchema.pushToStack();
         }
     }
 

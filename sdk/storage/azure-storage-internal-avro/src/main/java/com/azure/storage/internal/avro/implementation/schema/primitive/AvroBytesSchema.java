@@ -36,13 +36,13 @@ public class AvroBytesSchema extends AvroSchema {
      * Read the length, call onLength
      */
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
         AvroLongSchema lengthSchema = new AvroLongSchema(
             this.state,
             this::onLength
         );
-        lengthSchema.add();
+        lengthSchema.pushToStack();
     }
 
     /**
@@ -58,7 +58,7 @@ public class AvroBytesSchema extends AvroSchema {
             this.state,
             this::onBytes
         );
-        bytesSchema.add();
+        bytesSchema.pushToStack();
     }
 
     /**

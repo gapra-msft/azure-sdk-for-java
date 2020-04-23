@@ -33,8 +33,8 @@ public class AvroFixedSchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
     }
 
     @Override
@@ -47,7 +47,7 @@ public class AvroFixedSchema extends AvroSchema {
     @Override
     public boolean canProgress() {
         /* State must have enough bytes to satisfy size.*/
-        return this.state.contains(this.size);
+        return this.state.sizeGreaterThan(this.size);
     }
 
 }

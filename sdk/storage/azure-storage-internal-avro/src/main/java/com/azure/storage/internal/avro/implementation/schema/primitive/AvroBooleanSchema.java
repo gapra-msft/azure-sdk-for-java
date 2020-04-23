@@ -30,8 +30,8 @@ public class AvroBooleanSchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
     }
 
     @Override
@@ -52,6 +52,6 @@ public class AvroBooleanSchema extends AvroSchema {
     @Override
     public boolean canProgress() {
         /* State must have at least BOOLEAN_SIZE bytes to progess on a boolean. */
-        return this.state.contains(AvroConstants.BOOLEAN_SIZE);
+        return this.state.sizeGreaterThan(AvroConstants.BOOLEAN_SIZE);
     }
 }

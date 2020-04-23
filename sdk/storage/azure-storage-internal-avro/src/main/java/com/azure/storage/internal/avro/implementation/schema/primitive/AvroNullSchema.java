@@ -24,8 +24,8 @@ public class AvroNullSchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
     }
 
     @Override

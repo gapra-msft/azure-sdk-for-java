@@ -53,8 +53,8 @@ public class AvroHeaderSchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
 
         /* Read the magic bytes, call validateMagic. */
         AvroFixedSchema fixedSchema = new AvroFixedSchema(
@@ -62,7 +62,7 @@ public class AvroHeaderSchema extends AvroSchema {
             this.state,
             this::validateMagic
         );
-        fixedSchema.add();
+        fixedSchema.pushToStack();
     }
 
     /**
@@ -85,7 +85,7 @@ public class AvroHeaderSchema extends AvroSchema {
                 this.state,
                 this::onMetadata
             );
-            metadataSchema.add();
+            metadataSchema.pushToStack();
         } else {
             throw logger.logExceptionAsError(new IllegalArgumentException("Invalid Avro file."));
         }
@@ -122,7 +122,7 @@ public class AvroHeaderSchema extends AvroSchema {
             this.state,
             this::onSyncMarker
         );
-        fixedSchema.add();
+        fixedSchema.pushToStack();
     }
 
     /**

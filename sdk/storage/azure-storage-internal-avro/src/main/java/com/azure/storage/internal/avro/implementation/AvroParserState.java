@@ -50,7 +50,7 @@ public class AvroParserState {
      *
      * @param schema The schema to push to the stack.
      */
-    public void push(AvroSchema schema) {
+    public void pushToStack(AvroSchema schema) {
         this.stack.push(schema);
     }
 
@@ -59,7 +59,7 @@ public class AvroParserState {
      *
      * @return The Schema at the top of the stack.
      */
-    AvroSchema peek() {
+    AvroSchema peekFromStack() {
         return this.stack.peek();
     }
 
@@ -67,7 +67,7 @@ public class AvroParserState {
      * Pops off the Schema at the top of the stack. the state's stack of schemas to process.
      *
      */
-    void pop() {
+    void popOffStack() {
         this.stack.pop();
     }
 
@@ -77,7 +77,7 @@ public class AvroParserState {
      * @param sizeRequired The number of bytes required.
      * @return Whether or not the state is ready to emit sizeRequired bytes
      */
-    public boolean contains(Long sizeRequired) {
+    public boolean sizeGreaterThan(long sizeRequired) {
         return this.size >= sizeRequired;
     }
 
@@ -89,7 +89,7 @@ public class AvroParserState {
      * @param size The number of bytes to consume.
      * @return A List of ByteBuffers with the number of bytes requested.
      */
-    public List<ByteBuffer> read(Long size) {
+    public List<ByteBuffer> read(long size) {
         List<ByteBuffer> result = new LinkedList<>();
         Iterator<ByteBuffer> bufferIterator = this.cache.iterator();
         long needed = size;

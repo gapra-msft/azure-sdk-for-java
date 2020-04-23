@@ -45,7 +45,7 @@ public class AvroParser {
             this.state,
             this::onHeader
         );
-        headerSchema.add();
+        headerSchema.pushToStack();
     }
 
     /**
@@ -72,7 +72,7 @@ public class AvroParser {
             this.state,
             this::onBlock
         );
-        blockSchema.add();
+        blockSchema.pushToStack();
     }
 
     /**
@@ -87,17 +87,17 @@ public class AvroParser {
         this.state.write(buffer);
 
         /* Keep progressing in parsing schemas while able to make progress. */
-        AvroSchema schema = this.state.peek();
+        AvroSchema schema = this.state.peekFromStack();
         while (schema.canProgress()) {
             schema.progress();
             /* If schema is done, pop yourself off the stack and publish.
                It is important to publish after popping yourself off because the parent may need to complete/add
                other schemas as needed. */
             if (schema.isDone()) {
-                this.state.pop(); /* */
-                schema.publish();
+                this.state.popOffStack();
+                schema.publishResult();
             }
-            schema = this.state.peek();
+            schema = this.state.peekFromStack();
         }
 
         /* Convert the records collected so far into a Flux. */

@@ -52,8 +52,8 @@ public class AvroRecordSchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
 
         /* Read the first field, call onField. */
         this.fieldIterator = this.fields.iterator();
@@ -64,7 +64,7 @@ public class AvroRecordSchema extends AvroSchema {
             this.state,
             this::onField
         );
-        fieldSchema.add();
+        fieldSchema.pushToStack();
     }
 
     /**
@@ -87,7 +87,7 @@ public class AvroRecordSchema extends AvroSchema {
                 this.state,
                 this::onField
             );
-            fieldSchema.add();
+            fieldSchema.pushToStack();
         /* If there are no more fields, then we're done. */
         } else {
             this.result = this.ret;

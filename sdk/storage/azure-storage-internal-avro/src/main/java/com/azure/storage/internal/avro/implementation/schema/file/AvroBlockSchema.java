@@ -52,15 +52,15 @@ public class AvroBlockSchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
 
         /* Read the block count, call onBlockCount. */
         AvroLongSchema blockCountSchema = new AvroLongSchema(
             this.state,
             this::onBlockCount
         );
-        blockCountSchema.add();
+        blockCountSchema.pushToStack();
     }
 
     /**
@@ -76,7 +76,7 @@ public class AvroBlockSchema extends AvroSchema {
             this.state,
             this::onBlockSize
         );
-        blockSizeSchema.add();
+        blockSizeSchema.pushToStack();
     }
 
     /**
@@ -93,7 +93,7 @@ public class AvroBlockSchema extends AvroSchema {
             this.state,
             this::onObject
         );
-        objectSchema.add();
+        objectSchema.pushToStack();
     }
 
     /**
@@ -114,7 +114,7 @@ public class AvroBlockSchema extends AvroSchema {
                 this.state,
                 this::validateSync
             );
-            syncSchema.add();
+            syncSchema.pushToStack();
         /* If block count != 0, there are more objects in the block, read another object and call onObject. */
         } else {
             AvroSchema objectSchema = AvroSchema.getSchema(
@@ -122,7 +122,7 @@ public class AvroBlockSchema extends AvroSchema {
                 this.state,
                 this::onObject
             );
-            objectSchema.add();
+            objectSchema.pushToStack();
         }
     }
 

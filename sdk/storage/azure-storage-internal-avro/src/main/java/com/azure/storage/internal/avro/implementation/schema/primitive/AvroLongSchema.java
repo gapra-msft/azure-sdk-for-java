@@ -43,12 +43,15 @@ public class AvroLongSchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
     }
 
     /**
-     * Consuming bytes written into AvroParserState
+     * Consuming bytes written into AvroParserState.
+     * Please refer to these
+     * <a href="https://developers.google.com/protocol-buffers/docs/encoding#types">
+     *  Docs</a> for more information.
      */
     @Override
     public void progress() {
@@ -90,6 +93,6 @@ public class AvroLongSchema extends AvroSchema {
     @Override
     public boolean canProgress() {
         /* State must have at least 1 byte to make progress on a variable-sized long. */
-        return this.state.contains(1L);
+        return this.state.sizeGreaterThan(1L);
     }
 }

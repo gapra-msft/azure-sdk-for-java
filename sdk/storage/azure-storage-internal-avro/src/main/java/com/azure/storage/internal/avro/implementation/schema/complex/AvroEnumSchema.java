@@ -38,14 +38,14 @@ public class AvroEnumSchema extends AvroSchema {
     }
 
     @Override
-    public void add() {
-        this.state.push(this);
+    public void pushToStack() {
+        this.state.pushToStack(this);
         /* Read the index, call onIndex. */
         AvroIntegerSchema indexSchema = new AvroIntegerSchema(
             this.state,
             this::onIndex
         );
-        indexSchema.add();
+        indexSchema.pushToStack();
     }
 
     /**
