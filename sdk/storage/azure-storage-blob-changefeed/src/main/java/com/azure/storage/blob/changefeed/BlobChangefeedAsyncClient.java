@@ -10,6 +10,8 @@ import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.blob.BlobServiceVersion;
 
+import java.time.OffsetDateTime;
+
 /**
  * This class provides a client that contains all operations that apply to Azure Storage Blob changefeed.
  *
@@ -19,13 +21,20 @@ import com.azure.storage.blob.BlobServiceVersion;
 public class BlobChangefeedAsyncClient {
     private final ClientLogger logger = new ClientLogger(BlobChangefeedAsyncClient.class);
 
-    private static final String CHANGEFEED_CONTAINER_NAME = "$blobchangefeed";
+    static final String CHANGEFEED_CONTAINER_NAME = "$blobchangefeed";
 
     private final BlobContainerAsyncClient client;
 
-    BlobChangefeedAsyncClient(String accountUrl, HttpPipeline pipeline, BlobServiceVersion version) {
+    /**
+     * Package-private constructor for use by {@link BlobChangefeedClientBuilder}.
+     *
+     * @param pipeline The pipeline used to send and receive service requests.
+     * @param url The endpoint where to send service requests.
+     * @param version The version of the service to receive requests.
+     */
+    BlobChangefeedAsyncClient(HttpPipeline pipeline, String url, BlobServiceVersion version) {
         this.client = new BlobContainerClientBuilder()
-            .endpoint(accountUrl)
+            .endpoint(url)
             .containerName(CHANGEFEED_CONTAINER_NAME)
             .pipeline(pipeline)
             .serviceVersion(version)
@@ -33,9 +42,19 @@ public class BlobChangefeedAsyncClient {
     }
 
     /**
-     * This is a temporary method to pass CI for now because this.client was not used anywhere. Will remove in next PR.
+     *
+     * @return
      */
-    public void tempMethod() {
-        this.client.create();
+    public BlobChangefeedPagedFlux getEvents() {
+        return getEvents(null, null);
     }
+
+    public BlobChangefeedPagedFlux getEvents(OffsetDateTime startTime, OffsetDateTime endTime) {
+        return new BlobChangefeedPagedFlux(client, startTime, endTime);
+    }
+
+    public BlobChangefeedPagedFlux getEvents(String cursor) {
+        return new BlobChangefeedPagedFlux(client, cursor);
+    }
+
 }

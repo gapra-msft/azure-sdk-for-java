@@ -16,7 +16,7 @@ module com.azure.storage.blob {
         com.azure.storage.blob.cryptography,
         com.azure.storage.blob.batch,
         com.azure.storage.file.datalake,
-        azure.storage.blob.changefeed;    // FIXME this should not be a long-term solution
+        com.azure.storage.blob.changefeed;    // FIXME this should not be a long-term solution
 
     exports com.azure.storage.blob.implementation.models to com.azure.storage.blob.batch;
 
