@@ -9,7 +9,119 @@ import reactor.test.StepVerifier
 
 class BlobChangefeedTest extends APISpec {
 
-//    def "basic sync implementation"() {
+
+    def "real cf"() {
+        when:
+        def sv = StepVerifier.create(
+            new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
+            .buildAsyncClient().getEvents()
+        )
+        then:
+        sv.expectNextCount(2000)
+            .verifyComplete()
+    }
+
+
+    def "CF avro parser network"() {
+        expect:
+        AvroParser parser = new AvroParser();
+
+        List<Object> data = primaryBlobServiceAsyncClient
+            .getBlobContainerAsyncClient('$blobchangefeed')
+            .getBlobAsyncClient("log/00/2020/03/02/2300/00000.avro")
+            .download()
+            .concatMap({b -> parser.parse(b)})
+            .collectList()
+            .block();
+        System.out.println(data.size());
+    }
+//
+//    def "real cf start end"() {
+//        when:
+//        def sv = StepVerifier.create(
+//            new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
+//                .buildAsyncClient().getEvents(null, TimeUtils.roundDownToNearestYear(OffsetDateTime.now()))
+//        )
+//        then:
+//        sv.expectNextCount(1)
+//            .verifyComplete()
+//    }
+//
+//    def "real cf paged"() {
+//        setup:
+//        BlobChangefeedPagedFlux pagedFlux = new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
+//            .buildAsyncClient().getEvents()
+//
+//        when:
+//        def sv = StepVerifier.create(
+//            pagedFlux
+//        )
+//        then:
+//        sv.expectNextCount(1286).verifyComplete()
+//    }
+//
+//    def "real cf paged 50"() {
+//        setup:
+//        BlobChangefeedPagedFlux pagedFlux = new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
+//            .buildAsyncClient().getEvents()
+//
+//        when:
+//        def sv = StepVerifier.create(
+//            pagedFlux.byPage(50)
+//        )
+//        then:
+//        sv.expectNextCount(26).verifyComplete()
+//    }
+//
+//    def "real cf actually paged"() {
+//        setup:
+//
+//        BlobChangefeedAsyncClient client = new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
+//            .buildAsyncClient()
+//
+//        BlobChangefeedPagedFlux pagedFlux = client.getEvents("{\"endTime\":\"+999999999-12-31T23:59:59.999999999-18:00\",\"segmentTime\":\"2020-03-23T22:00Z\",\"shardPath\":\"log/00/2020/03/23/2200/\",\"chunkPath\":\"log/00/2020/03/23/2200/00000.avro\",\"eventIndex\":35,\"eventToBeProcessed\":null}")
+//        def sv = StepVerifier.create(
+//            pagedFlux.byPage(50)
+//        )
+//
+//        sv.expectNextCount(23).verifyComplete()
+//
+//    }
+//
+//    def "real cf actually paged sync"() {
+//        setup:
+//        BlobChangefeedClient client = new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
+//            .buildClient()
+//
+//        BlobChangefeedPagedIterable pagedIterable = client.getEvents()
+//            def it = pagedIterable.iterator()
+//
+//        int num = 0;
+//
+//        while (it.hasNext()) {
+//            it.next()
+//            num++
+//        }
+//
+//        assert num == 1286
+//    }
+//
+//    def "real cf paged sync"() {
+//        setup:
+//        BlobChangefeedClient client = new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
+//            .buildClient()
+//
+//        def pagedIterable = client.getEvents().iterableByPage(50)
+//
+//        def num = 0
+//        for (def item : pagedIterable) {
+//            num++
+//        }
+//
+//        assert num == 26
+//    }
+
+    //    def "basic sync implementation"() {
 //        setup:
 //        def cfClient = primaryBlobServiceClient.getBlobContainerClient('$blobchangefeed')
 //
@@ -355,114 +467,4 @@ class BlobChangefeedTest extends APISpec {
 //        sv.expectNextCount(1201).verifyComplete()
 //    }
 //
-    def "real cf"() {
-        when:
-        def sv = StepVerifier.create(
-            new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
-            .buildAsyncClient().getEvents()
-        )
-        then:
-        sv.expectNextCount(2000)
-            .verifyComplete()
-    }
-
-
-    def "CF avro parser network"() {
-        expect:
-        AvroParser parser = new AvroParser();
-
-        List<Object> data = primaryBlobServiceAsyncClient
-            .getBlobContainerAsyncClient('$blobchangefeed')
-            .getBlobAsyncClient("log/00/2020/03/02/2300/00000.avro")
-            .download()
-            .concatMap({b -> parser.parse(b)})
-            .collectList()
-            .block();
-        System.out.println(data.size());
-    }
-//
-//    def "real cf start end"() {
-//        when:
-//        def sv = StepVerifier.create(
-//            new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
-//                .buildAsyncClient().getEvents(null, TimeUtils.roundDownToNearestYear(OffsetDateTime.now()))
-//        )
-//        then:
-//        sv.expectNextCount(1)
-//            .verifyComplete()
-//    }
-//
-//    def "real cf paged"() {
-//        setup:
-//        BlobChangefeedPagedFlux pagedFlux = new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
-//            .buildAsyncClient().getEvents()
-//
-//        when:
-//        def sv = StepVerifier.create(
-//            pagedFlux
-//        )
-//        then:
-//        sv.expectNextCount(1286).verifyComplete()
-//    }
-//
-//    def "real cf paged 50"() {
-//        setup:
-//        BlobChangefeedPagedFlux pagedFlux = new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
-//            .buildAsyncClient().getEvents()
-//
-//        when:
-//        def sv = StepVerifier.create(
-//            pagedFlux.byPage(50)
-//        )
-//        then:
-//        sv.expectNextCount(26).verifyComplete()
-//    }
-//
-//    def "real cf actually paged"() {
-//        setup:
-//
-//        BlobChangefeedAsyncClient client = new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
-//            .buildAsyncClient()
-//
-//        BlobChangefeedPagedFlux pagedFlux = client.getEvents("{\"endTime\":\"+999999999-12-31T23:59:59.999999999-18:00\",\"segmentTime\":\"2020-03-23T22:00Z\",\"shardPath\":\"log/00/2020/03/23/2200/\",\"chunkPath\":\"log/00/2020/03/23/2200/00000.avro\",\"eventIndex\":35,\"eventToBeProcessed\":null}")
-//        def sv = StepVerifier.create(
-//            pagedFlux.byPage(50)
-//        )
-//
-//        sv.expectNextCount(23).verifyComplete()
-//
-//    }
-//
-//    def "real cf actually paged sync"() {
-//        setup:
-//        BlobChangefeedClient client = new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
-//            .buildClient()
-//
-//        BlobChangefeedPagedIterable pagedIterable = client.getEvents()
-//            def it = pagedIterable.iterator()
-//
-//        int num = 0;
-//
-//        while (it.hasNext()) {
-//            it.next()
-//            num++
-//        }
-//
-//        assert num == 1286
-//    }
-//
-//    def "real cf paged sync"() {
-//        setup:
-//        BlobChangefeedClient client = new BlobChangefeedClientBuilder(primaryBlobServiceAsyncClient)
-//            .buildClient()
-//
-//        def pagedIterable = client.getEvents().iterableByPage(50)
-//
-//        def num = 0
-//        for (def item : pagedIterable) {
-//            num++
-//        }
-//
-//        assert num == 26
-//    }
 }
