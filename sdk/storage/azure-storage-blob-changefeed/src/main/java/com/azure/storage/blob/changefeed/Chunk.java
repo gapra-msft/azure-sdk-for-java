@@ -35,6 +35,8 @@ class Chunk {
 
     private final BlobChangefeedCursor userCursor;
 
+    private AvroParser parser;
+
 
     Chunk(BlobContainerAsyncClient client, String chunkPath, BlobChangefeedCursor shardCursor,
         BlobChangefeedCursor userCursor) {
@@ -43,19 +45,18 @@ class Chunk {
         this.shardCursor = shardCursor;
         this.eventNumber = -1;
         this.userCursor = userCursor;
-        System.out.println(chunkPath);
+        this.parser = new AvroParser();
     }
 
     Flux<BlobChangefeedEventWrapper> getEvents() {
         /* Download Avro data file. */
         /* TODO (gapra): Lazy download. */
-        AvroParser parser = new AvroParser();
         return client.getBlobAsyncClient(chunkPath)
             .download()
-            .concatMap(parser::parse)
+            .concatMap(this.parser::parse)
             .map(object -> {
                 BlobChangefeedCursor eventCursor = shardCursor.toEventCursor(eventNumber++);
-                return new BlobChangefeedEventWrapper(BlobChangefeedEvent.fromRecord((Map<String, Object>) object), eventCursor);
+                return new BlobChangefeedEventWrapper(BlobChangefeedEvent.fromRecord(object), eventCursor);
             });
     }
 }

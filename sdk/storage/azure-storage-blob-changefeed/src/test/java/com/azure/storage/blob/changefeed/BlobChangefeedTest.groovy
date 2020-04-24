@@ -1,10 +1,15 @@
 package com.azure.storage.blob.changefeed
 
+import com.azure.core.util.FluxUtil
 import com.azure.storage.blob.BlobServiceAsyncClient
 import com.azure.storage.blob.BlobServiceClientBuilder
+import com.azure.storage.blob.changefeed.models.BlobChangefeedEvent
+import com.azure.storage.blob.models.ListBlobsOptions
 import com.azure.storage.common.StorageSharedKeyCredential
 import com.azure.storage.internal.avro.implementation.AvroParser
 import com.azure.storage.internal.avro.implementation.AvroParserState
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import reactor.test.StepVerifier
 
 class BlobChangefeedTest extends APISpec {
@@ -17,7 +22,7 @@ class BlobChangefeedTest extends APISpec {
             .buildAsyncClient().getEvents()
         )
         then:
-        sv.expectNextCount(2000)
+        sv.expectNextCount(1608)
             .verifyComplete()
     }
 
@@ -28,9 +33,10 @@ class BlobChangefeedTest extends APISpec {
 
         List<Object> data = primaryBlobServiceAsyncClient
             .getBlobContainerAsyncClient('$blobchangefeed')
-            .getBlobAsyncClient("log/00/2020/03/02/2300/00000.avro")
+            .getBlobAsyncClient("log/00/2020/03/23/2200/00000.avro")
             .download()
             .concatMap({b -> parser.parse(b)})
+            .map({o -> BlobChangefeedEvent.fromRecord((Map<String, Object>) o)})
             .collectList()
             .block();
         System.out.println(data.size());
@@ -167,233 +173,262 @@ class BlobChangefeedTest extends APISpec {
 //        System.out.println("TOTAL NUMBER OF CFE " + numCFE)
 //    }
 //
-//    def "get years"() {
-//        setup:
-//        def client = primaryBlobServiceAsyncClient.getBlobContainerAsyncClient('$blobchangefeed')
-//        // Years
-//        def years = client.listBlobsByHierarchy("idx/segments/")
-//
-//        when:
-//        def sv = StepVerifier.create(
-//            years.map({ item -> item.getName() })
-//        )
-//        then:
-//        sv.expectNext("idx/segments/1601/")
-//            .expectNext("idx/segments/2019/")
-//            .expectNext("idx/segments/2020/")
-//            .expectComplete()
-//            .verify();
-//    }
-//
-//    def "get segments"() {
-//        setup:
-//        def client = primaryBlobServiceAsyncClient.getBlobContainerAsyncClient('$blobchangefeed')
-//        // Years
-//        def segments = client.listBlobsByHierarchy("idx/segments/")
-//            .concatMap({ year ->
-//                System.out.println("YEAR : " + year.getName())
-//                return client.listBlobs(new ListBlobsOptions().setPrefix(year.getName()))
-//            })
-//
-//        when:
-//        def sv = StepVerifier.create(
-//            segments.map({ segment ->
-//                System.out.println("SEGMENT: " + segment.getName())
-//                segment.getName()
-//            })
-//        )
-//        then:
-//        sv.expectNext("idx/segments/1601/01/01/0000/meta.json")
-//            .expectNext("idx/segments/2019/11/01/1700/meta.json")
-//            .expectNext("idx/segments/2020/01/16/2300/meta.json")
-//            .expectNext("idx/segments/2020/03/02/2300/meta.json")
-//            .expectNext("idx/segments/2020/03/03/0000/meta.json")
-//            .expectNext("idx/segments/2020/03/03/1800/meta.json")
-//            .expectNext("idx/segments/2020/03/03/2000/meta.json")
-//            .expectNext("idx/segments/2020/03/03/2200/meta.json")
-//            .expectNext("idx/segments/2020/03/05/1700/meta.json")
-//            .expectNext("idx/segments/2020/03/12/2200/meta.json")
-//            .expectNext("idx/segments/2020/03/19/2200/meta.json")
-//            .expectNext("idx/segments/2020/03/23/2200/meta.json")
-//            .expectComplete()
-//            .verify();
-//    }
-//
-//    def "get shards"() {
-//        setup:
-//        def client = primaryBlobServiceAsyncClient.getBlobContainerAsyncClient('$blobchangefeed')
-//        // Years
-//        def segments = client.listBlobsByHierarchy("idx/segments/")
-//            .concatMap({ year ->
-//                return client.listBlobs(new ListBlobsOptions().setPrefix(year.getName()))
-//            })
-//            .map({ segment -> segment.getName() })
-//
-//        when:
-//        def sv = StepVerifier.create(
-//            segments.map({ segment ->
-//                return client.getBlobAsyncClient(segment)
-//            }).flatMapSequential({ segmentClient ->
-//                segmentClient.download().reduce(new ByteArrayOutputStream(), { outputStream, buffer ->
-//                    outputStream.write(FluxUtil.byteBufferToArray(buffer));
-//                    return outputStream;
-//                })
-//            }).map({ os ->
-//                os.toString()
-//            }).flatMapIterable({ json ->
-//                ObjectMapper objectMapper = new ObjectMapper()
-//                JsonNode jsonNode = objectMapper.readTree(json)
-//                Iterable<String> shards = new ArrayList<>()
-//                for (JsonNode shard : jsonNode.withArray("chunkFilePaths")) {
-//                    shards.add(shard.asText().substring('$blobchangefeed/'.length()))
-//                }
-//                return shards
-//            }).map({ shard ->
-//                System.out.println(shard)
-//                return shard
-//            })
-//        )
-//        then:
-//        sv.expectNext("log/00/1601/01/01/0000/")
-//            .expectNext("log/00/2019/11/01/1700/")
-//            .expectNext("log/00/2020/01/16/2300/")
-//            .expectNext("log/00/2020/03/02/2300/")
-//            .expectNext("log/00/2020/03/03/0000/")
-//            .expectNext("log/00/2020/03/03/1800/")
-//            .expectNext("log/00/2020/03/03/2000/")
-//            .expectNext("log/00/2020/03/03/2200/")
-//            .expectNext("log/00/2020/03/05/1700/")
-//            .expectNext("log/00/2020/03/12/2200/")
-//            .expectNext("log/00/2020/03/19/2200/")
-//            .expectNext("log/00/2020/03/23/2200/")
-//            .expectComplete()
-//            .verify();
-//    }
-//
-//    def "get chunks"() {
-//        setup:
-//        def client = primaryBlobServiceAsyncClient.getBlobContainerAsyncClient('$blobchangefeed')
-//        // Years
-//        def shards = client.listBlobsByHierarchy("idx/segments/")
-//            .flatMapSequential({ year ->
-//                return client.listBlobs(new ListBlobsOptions().setPrefix(year.getName()))
-//            })
-//            .map({ segment -> segment.getName() })
-//            .map({ segment ->
-//            return client.getBlobAsyncClient(segment)
-//        }).flatMapSequential({ segmentClient ->
-//            segmentClient.download().reduce(new ByteArrayOutputStream(), { outputStream, buffer ->
-//                outputStream.write(FluxUtil.byteBufferToArray(buffer));
-//                return outputStream;
-//            })
-//        }).map({ os ->
-//            os.toString()
-//        }).flatMapIterable({ json ->
-//            ObjectMapper objectMapper = new ObjectMapper()
-//            JsonNode jsonNode = objectMapper.readTree(json)
-//            Iterable<String> shards = new ArrayList<>()
-//            for (JsonNode shard : jsonNode.withArray("chunkFilePaths")) {
-//                shards.add(shard.asText().substring('$blobchangefeed/'.length()))
-//            }
-//            return shards
-//        })
-//
-//        when:
-//        def sv = StepVerifier.create(
-//            shards.flatMapSequential({ shard ->
-//            return client.listBlobs(new ListBlobsOptions().setPrefix(shard))
-//        }).map({ chunk -> chunk.getName() })
-//        )
-//        then:
-//        sv.expectNext("log/00/2019/11/01/1700/00000.avro")
-//            .expectNext("log/00/2020/01/16/2300/00000.avro")
-//            .expectNext("log/00/2020/03/02/2300/00000.avro")
-//            .expectNext("log/00/2020/03/03/0000/00000.avro")
-//            .expectNext("log/00/2020/03/03/1800/00000.avro")
-//            .expectNext("log/00/2020/03/03/2000/00000.avro")
-//            .expectNext("log/00/2020/03/03/2200/00000.avro")
-//            .expectNext("log/00/2020/03/05/1700/00000.avro")
-//            .expectNext("log/00/2020/03/12/2200/00000.avro")
-//            .expectNext("log/00/2020/03/19/2200/00000.avro")
-//            .expectNext("log/00/2020/03/23/2200/00000.avro")
-//            .expectComplete()
-//            .verify();
-//    }
-//
-//    def "parse chunks"() {
-//        setup:
-//        def client = primaryBlobServiceAsyncClient.getBlobContainerAsyncClient('$blobchangefeed')
-//        // Years
-//        def shards = client.listBlobsByHierarchy("idx/segments/")
-//            .flatMapSequential({ year ->
-//                return client.listBlobs(new ListBlobsOptions().setPrefix(year.getName()))
-//            })
-//            .map({ segment -> segment.getName() })
-//            .map({ segment ->
-//                return client.getBlobAsyncClient(segment)
-//            }).flatMapSequential({ segmentClient ->
-//            segmentClient.download().reduce(new ByteArrayOutputStream(), { outputStream, buffer ->
-//                outputStream.write(FluxUtil.byteBufferToArray(buffer));
-//                return outputStream;
-//            })
-//        }).map({ os ->
-//            os.toString()
-//        }).flatMapIterable({ json ->
-//            ObjectMapper objectMapper = new ObjectMapper()
-//            JsonNode jsonNode = objectMapper.readTree(json)
-//            Iterable<String> shards = new ArrayList<>()
-//            for (JsonNode shard : jsonNode.withArray("chunkFilePaths")) {
-//                shards.add(shard.asText().substring('$blobchangefeed/'.length()))
-//            }
-//            return shards
-//        }).flatMapSequential({ shard ->
-//            return client.listBlobs(new ListBlobsOptions().setPrefix(shard))
-//        }).map({ chunk -> chunk.getName() })
-//
-//        when:
-//        def sv = StepVerifier.create(
-//            shards
-//                .map({ shard ->
-//                    return client.getBlobAsyncClient(shard)
-//                }).flatMapSequential({ shardClient ->
-//                shardClient.download().reduce(new ByteArrayOutputStream(), { outputStream, buffer ->
-//                    outputStream.write(FluxUtil.byteBufferToArray(buffer));
-//                    return outputStream;
-//                })
-//            }).map({ os ->
-//                return new ByteArrayInputStream(os.toByteArray())
-//            }).flatMapIterable({ avro ->
-//                DataFileStream<GenericRecord> parsedStream = new DataFileStream<>(avro, new GenericDatumReader<>())
-//                Iterable<BlobChangefeedEvent> events = new ArrayList<>()
-//                while (parsedStream.hasNext()) {
-//                    GenericRecord r = parsedStream.next()
-//                    GenericRecord d = r.get("data")
-//                    events.add(new BlobChangefeedEvent(r.get("topic").toString(),
-//                        r.get("subject").toString(),
-//                        BlobChangefeedEventType.fromString(r.get("eventType").toString()),
-//                        OffsetDateTime.parse(r.get("eventTime").toString()),
-//                        r.get("id").toString(),
-//                        new BlobChangefeedEventData(d.get("api").toString(),
-//                            d.get("clientRequestId").toString(),
-//                            null,
-//                            d.get("etag").toString(),
-//                            d.get("contentType").toString(),
-//                            0,
-//                            BlobType.fromString(d.get("blobType").toString()),
-//                            null, null, null,
-//                            d.get("url").toString(),
-//                            null,
-//                            d.get("sequencer").toString()),
-//                        null,
-//                        r.get("metadataVersion").toString()))
-//                }
-//                return events
-//            })
-//        )
-//        then:
-//        sv.expectNextCount(1133)
-//        .verifyComplete()
-//    }
+    def "get years"() {
+        setup:
+        def client = primaryBlobServiceAsyncClient.getBlobContainerAsyncClient('$blobchangefeed')
+        // Years
+        def years = client.listBlobsByHierarchy("idx/segments/")
+
+        when:
+        def sv = StepVerifier.create(
+            years.map({ item -> item.getName() })
+        )
+        then:
+        sv.expectNext("idx/segments/1601/")
+            .expectNext("idx/segments/2019/")
+            .expectNext("idx/segments/2020/")
+            .expectComplete()
+            .verify();
+    }
+
+    def "get segments"() {
+        setup:
+        def client = primaryBlobServiceAsyncClient.getBlobContainerAsyncClient('$blobchangefeed')
+        // Years
+        def segments = client.listBlobsByHierarchy("idx/segments/")
+            .concatMap({ year ->
+                System.out.println("YEAR : " + year.getName())
+                return client.listBlobs(new ListBlobsOptions().setPrefix(year.getName()))
+            })
+
+        when:
+        def sv = StepVerifier.create(
+            segments.map({ segment ->
+                System.out.println("SEGMENT: " + segment.getName())
+                segment.getName()
+            })
+        )
+        then:
+        sv.expectNext("idx/segments/1601/01/01/0000/meta.json")
+            .expectNext("idx/segments/2019/11/01/1700/meta.json")
+            .expectNext("idx/segments/2020/01/16/2300/meta.json")
+            .expectNext("idx/segments/2020/03/02/2300/meta.json")
+            .expectNext("idx/segments/2020/03/03/0000/meta.json")
+            .expectNext("idx/segments/2020/03/03/1800/meta.json")
+            .expectNext("idx/segments/2020/03/03/2000/meta.json")
+            .expectNext("idx/segments/2020/03/03/2200/meta.json")
+            .expectNext("idx/segments/2020/03/05/1700/meta.json")
+            .expectNext("idx/segments/2020/03/12/2200/meta.json")
+            .expectNext("idx/segments/2020/03/19/2200/meta.json")
+            .expectNext("idx/segments/2020/03/23/2200/meta.json")
+            .expectNext("idx/segments/2020/03/24/2300/meta.json")
+            .expectNext("idx/segments/2020/03/25/0000/meta.json")
+            .expectNext("idx/segments/2020/03/25/0200/meta.json")
+            .expectNext("idx/segments/2020/03/25/0400/meta.json")
+            .expectNext("idx/segments/2020/03/25/0500/meta.json")
+            .expectNext("idx/segments/2020/03/25/1900/meta.json")
+            .expectNext("idx/segments/2020/03/26/0300/meta.json")
+            .expectNext("idx/segments/2020/03/26/0500/meta.json")
+            .expectNext("idx/segments/2020/03/26/0600/meta.json")
+            .expectNext("idx/segments/2020/03/26/0700/meta.json")
+            .expectNext("idx/segments/2020/03/26/2000/meta.json")
+            .expectNext("idx/segments/2020/03/27/2000/meta.json")
+            .expectNext("idx/segments/2020/03/28/0400/meta.json")
+            .expectNext("idx/segments/2020/03/28/0500/meta.json")
+            .expectNext("idx/segments/2020/03/28/2100/meta.json")
+            .expectNext("idx/segments/2020/04/01/1700/meta.json")
+            .expectNext("idx/segments/2020/04/22/1900/meta.json")
+            .expectNext("idx/segments/2020/04/23/0000/meta.json")
+            .expectNext("idx/segments/2020/04/23/2000/meta.json")
+            .expectComplete()
+            .verify();
+    }
+
+    def "get shards"() {
+        setup:
+        def client = primaryBlobServiceAsyncClient.getBlobContainerAsyncClient('$blobchangefeed')
+        // Years
+        def segments = client.listBlobsByHierarchy("idx/segments/")
+            .concatMap({ year ->
+                return client.listBlobs(new ListBlobsOptions().setPrefix(year.getName()))
+            })
+            .map({ segment -> segment.getName() })
+
+        when:
+        def sv = StepVerifier.create(
+            segments.map({ segment ->
+                return client.getBlobAsyncClient(segment)
+            }).flatMapSequential({ segmentClient ->
+                segmentClient.download().reduce(new ByteArrayOutputStream(), { outputStream, buffer ->
+                    outputStream.write(FluxUtil.byteBufferToArray(buffer));
+                    return outputStream;
+                })
+            }).map({ os ->
+                os.toString()
+            }).flatMapIterable({ json ->
+                ObjectMapper objectMapper = new ObjectMapper()
+                JsonNode jsonNode = objectMapper.readTree(json)
+                Iterable<String> shards = new ArrayList<>()
+                for (JsonNode shard : jsonNode.withArray("chunkFilePaths")) {
+                    shards.add(shard.asText().substring('$blobchangefeed/'.length()))
+                }
+                return shards
+            }).map({ shard ->
+                System.out.println(shard)
+                return shard
+            })
+        )
+        then:
+        sv.expectNext("log/00/1601/01/01/0000/")
+            .expectNext("log/00/2019/11/01/1700/")
+            .expectNext("log/00/2020/01/16/2300/")
+            .expectNext("log/00/2020/03/02/2300/")
+            .expectNext("log/00/2020/03/03/0000/")
+            .expectNext("log/00/2020/03/03/1800/")
+            .expectNext("log/00/2020/03/03/2000/")
+            .expectNext("log/00/2020/03/03/2200/")
+            .expectNext("log/00/2020/03/05/1700/")
+            .expectNext("log/00/2020/03/12/2200/")
+            .expectNext("log/00/2020/03/19/2200/")
+            .expectNext("log/00/2020/03/23/2200/")
+            .expectNext("log/00/2020/03/24/2300/")
+            .expectNext("log/00/2020/03/25/0000/")
+            .expectNext("log/00/2020/03/25/0200/")
+            .expectNext("log/00/2020/03/25/0400/")
+            .expectNext("log/00/2020/03/25/0500/")
+            .expectNext("log/00/2020/03/25/1900/")
+            .expectNext("log/00/2020/03/26/0300/")
+            .expectNext("log/00/2020/03/26/0500/")
+            .expectNext("log/00/2020/03/26/0600/")
+            .expectNext("log/00/2020/03/26/0700/")
+            .expectNext("log/00/2020/03/26/2000/")
+            .expectNext("log/00/2020/03/27/2000/")
+            .expectNext("log/00/2020/03/28/0400/")
+            .expectNext("log/00/2020/03/28/0500/")
+            .expectNext("log/00/2020/03/28/2100/")
+            .expectNext("log/00/2020/04/01/1700/")
+            .expectNext("log/00/2020/04/22/1900/")
+            .expectNext("log/00/2020/04/23/0000/")
+            .expectNext("log/00/2020/04/23/2000/")
+
+            .expectComplete()
+            .verify();
+    }
+
+    def "get chunks"() {
+        setup:
+        def client = primaryBlobServiceAsyncClient.getBlobContainerAsyncClient('$blobchangefeed')
+        // Years
+        def shards = client.listBlobsByHierarchy("idx/segments/")
+            .flatMapSequential({ year ->
+                return client.listBlobs(new ListBlobsOptions().setPrefix(year.getName()))
+            })
+            .map({ segment -> segment.getName() })
+            .map({ segment ->
+            return client.getBlobAsyncClient(segment)
+        }).flatMapSequential({ segmentClient ->
+            segmentClient.download().reduce(new ByteArrayOutputStream(), { outputStream, buffer ->
+                outputStream.write(FluxUtil.byteBufferToArray(buffer));
+                return outputStream;
+            })
+        }).map({ os ->
+            os.toString()
+        }).flatMapIterable({ json ->
+            ObjectMapper objectMapper = new ObjectMapper()
+            JsonNode jsonNode = objectMapper.readTree(json)
+            Iterable<String> shards = new ArrayList<>()
+            for (JsonNode shard : jsonNode.withArray("chunkFilePaths")) {
+                shards.add(shard.asText().substring('$blobchangefeed/'.length()))
+            }
+            return shards
+        })
+
+        when:
+        def sv = StepVerifier.create(
+            shards.flatMapSequential({ shard ->
+            return client.listBlobs(new ListBlobsOptions().setPrefix(shard))
+        }).map({ chunk -> chunk.getName() })
+        )
+        then:
+        sv.expectNext("log/00/2019/11/01/1700/00000.avro")
+            .expectNext("log/00/2020/01/16/2300/00000.avro")
+            .expectNext("log/00/2020/03/02/2300/00000.avro")
+            .expectNext("log/00/2020/03/03/0000/00000.avro")
+            .expectNext("log/00/2020/03/03/1800/00000.avro")
+            .expectNext("log/00/2020/03/03/2000/00000.avro")
+            .expectNext("log/00/2020/03/03/2200/00000.avro")
+            .expectNext("log/00/2020/03/05/1700/00000.avro")
+            .expectNext("log/00/2020/03/12/2200/00000.avro")
+            .expectNext("log/00/2020/03/19/2200/00000.avro")
+            .expectNext("log/00/2020/03/23/2200/00000.avro")
+            .expectNext("log/00/2020/03/24/2300/00000.avro")
+            .expectNext("log/00/2020/03/25/0000/00000.avro")
+            .expectNext("log/00/2020/03/25/0200/00000.avro")
+            .expectNext("log/00/2020/03/25/0400/00000.avro")
+            .expectNext("log/00/2020/03/25/0500/00000.avro")
+            .expectNext("log/00/2020/03/25/1900/00000.avro")
+            .expectNext("log/00/2020/03/26/0300/00000.avro")
+            .expectNext("log/00/2020/03/26/0500/00000.avro")
+            .expectNext("log/00/2020/03/26/0600/00000.avro")
+            .expectNext("log/00/2020/03/26/0700/00000.avro")
+            .expectNext("log/00/2020/03/26/2000/00000.avro")
+            .expectNext("log/00/2020/03/27/2000/00000.avro")
+            .expectNext("log/00/2020/03/28/0400/00000.avro")
+            .expectNext("log/00/2020/03/28/0500/00000.avro")
+            .expectNext("log/00/2020/03/28/2100/00000.avro")
+            .expectNext("log/00/2020/04/01/1700/00000.avro")
+            .expectNext("log/00/2020/04/22/1900/00000.avro")
+            .expectNext("log/00/2020/04/23/0000/00000.avro")
+            .expectNext("log/00/2020/04/23/2000/00000.avro")
+            .expectComplete()
+            .verify();
+    }
+
+    def "parse chunks"() {
+        setup:
+        def client = primaryBlobServiceAsyncClient.getBlobContainerAsyncClient('$blobchangefeed')
+        // Years
+        def shards = client.listBlobsByHierarchy("idx/segments/")
+            .flatMapSequential({ year ->
+                return client.listBlobs(new ListBlobsOptions().setPrefix(year.getName()))
+            })
+            .map({ segment -> segment.getName() })
+            .map({ segment ->
+                return client.getBlobAsyncClient(segment)
+            }).flatMapSequential({ segmentClient ->
+            segmentClient.download().reduce(new ByteArrayOutputStream(), { outputStream, buffer ->
+                outputStream.write(FluxUtil.byteBufferToArray(buffer));
+                return outputStream;
+            })
+        }).map({ os ->
+            os.toString()
+        }).flatMapIterable({ json ->
+            ObjectMapper objectMapper = new ObjectMapper()
+            JsonNode jsonNode = objectMapper.readTree(json)
+            Iterable<String> shards = new ArrayList<>()
+            for (JsonNode shard : jsonNode.withArray("chunkFilePaths")) {
+                shards.add(shard.asText().substring('$blobchangefeed/'.length()))
+            }
+            return shards
+        }).flatMapSequential({ shard ->
+            return client.listBlobs(new ListBlobsOptions().setPrefix(shard))
+        }).map({ chunk -> chunk.getName() })
+
+        when:
+        def sv = StepVerifier.create(
+            shards
+                .map({ shard ->
+                    return client.getBlobAsyncClient(shard)
+                })
+                .limitRate(1)
+                .concatMap({ shardClient ->
+                AvroParser parser = new AvroParser()
+                return shardClient.download().concatMap({buffer -> parser.parse(buffer) })
+            }) );
+        then:
+        sv.expectNextCount(2000)
+        .verifyComplete()
+    }
 //
 //    def "final cf"() {
 //        setup:

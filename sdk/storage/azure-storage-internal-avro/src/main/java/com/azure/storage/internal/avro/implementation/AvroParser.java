@@ -120,22 +120,4 @@ public class AvroParser {
         return result;
     }
 
-    public static void main(String[] args) {
-        AvroParser parser = new AvroParser();
-
-        BlobServiceAsyncClient c = new BlobServiceClientBuilder()
-            .endpoint("https://seanchangefeedstage.blob.core.windows.net")
-            .credential(new StorageSharedKeyCredential("seanchangefeedstage", "XbDHF5F/HxkQ8gil8QvI99D07ppEN64lBQOuU0h68T//hps7C2Iu+UUviIQgK6vSKGD22dmn4ohXaVg7DhUFIA=="))
-            .buildAsyncClient();
-
-        List<Object> data = c
-            .getBlobContainerAsyncClient("$blobchangefeed")
-            .getBlobAsyncClient("log/00/2019/11/01/1700/00000.avro")
-            .download()
-            .concatMap(parser::parse)
-            .collectList()
-            .block();
-        System.out.println(data.size());
-    }
-
 }

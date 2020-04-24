@@ -134,6 +134,31 @@ class AvroParserTest extends Specification {
         return match
     }
 
+    /* This test checks that different chunk sizes still result in validly parsed files. */
+    @Unroll
+    def "Parse chunk size"() {
+        setup:
+        AvroParser parser = new AvroParser()
+        Path path = Paths.get(getTestCasePath(13))
+        Flux<ByteBuffer> file = FluxUtil.readFile(AsynchronousFileChannel.open(path, StandardOpenOption.READ),
+            chunkSize, 0, 157)
+
+        when:
+        def verifier = StepVerifier.create(file
+            .concatMap({ buffer -> parser.parse(buffer) })
+        )
+        then:
+        verify(verifier, { o -> ((Map) o).equals(['$record': 'Test', 'f': 5]) })
+
+        /* The record avro file is 157 bytes long. */
+        where:
+        chunkSize || _
+        1         || _ /* 157 1 byte ByteBuffers. */
+        36        || _ /* 4 36 byte ByteBuffers. */
+        78        || _ /* 2 78 byte ByteBuffers. */
+        157       || _ /* 1 157 byte ByteBuffer. */
+    }
+
     def "Parse CF"() {
         setup:
         AvroParser parser = new AvroParser()
@@ -147,16 +172,8 @@ class AvroParserTest extends Specification {
         file.concatMap({buffer -> parser.parse(buffer)})
         .collectList()
         .block();
-
-//        when:
-//        def verifier = StepVerifier.create(file
-//            .concatMap({ buffer -> parser.parse(buffer) })
-//        )
-//        then:
-//        verifier.expectNextCount(1000)
-//        .expectComplete()
     }
 
-    /* TODO (gapra) : Once this is in the same branch as QQ and CF, add network tests for both of them. */
+    /* TODO (gapra) : Once this is in the same branch as QQ and CF, add network tests for both of them. (this could just go in the CF/QQ packages) */
 
 }

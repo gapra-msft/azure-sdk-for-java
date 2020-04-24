@@ -38,7 +38,7 @@ public class AvroUtils {
             checkByteBuffer("'buffer'", buffer);
             ByteBuffer b = (ByteBuffer) buffer;
             int length = b.remaining();
-            ((ByteBuffer) buffer).get(ret, 0, length);
+            b.get(ret, offset.get(), length);
             offset.addAndGet(length);
         });
 

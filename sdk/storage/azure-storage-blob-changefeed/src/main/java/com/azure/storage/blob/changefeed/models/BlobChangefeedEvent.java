@@ -31,7 +31,14 @@ public class BlobChangefeedEvent {
         this.metadataVersion = metadataVersion;
     }
 
-    public static BlobChangefeedEvent fromRecord(Map<String, Object> record) {
+    public static BlobChangefeedEvent fromRecord(Object r) {
+
+        if (!(r instanceof Map)) {
+            throw new IllegalArgumentException("Expected record to be of type Map");
+        }
+
+        Map<String, Object> record = (Map<String, Object>) r;
+
         Object topic = record.get("topic");
         Object subject = record.get("subject");
         Object eventType = record.get("eventType");
@@ -40,6 +47,8 @@ public class BlobChangefeedEvent {
         Object data = record.get("data");
         Object dataVersion = record.get("dataVersion");
         Object metadataVersion = record.get("metadataVersion");
+
+        System.out.println((String) subject);
 
         return new BlobChangefeedEvent(isNull(topic) ? null : topic.toString(),
             isNull(subject) ? null : subject.toString(),
