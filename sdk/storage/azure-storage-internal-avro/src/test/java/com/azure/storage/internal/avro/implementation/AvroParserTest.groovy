@@ -169,12 +169,22 @@ class AvroParserTest extends Specification {
         Path path = Paths.get(f.getAbsolutePath())
         Flux<ByteBuffer> file = FluxUtil.readFile(AsynchronousFileChannel.open(path, StandardOpenOption.READ))
 
-        expect:
-        file.concatMap({buffer -> parser.parse(buffer)})
-        .collectList()
-        .block();
+        when:
+        def sv = StepVerifier.create(file
+            .concatMap({buffer -> parser.parse(buffer)})
+            .map({o -> (String)((Map<String, Object>) o).get("subject")})
+            .index()
+        )
+
+        then:
+        sv
+            .expectNextMatches({t -> t.getT2() == "/blobServices/default/containers/test-container/blobs/" + t.getT1()})
+            .expectNextCount(999)
+            .expectComplete()
+            .verify()
+
     }
 
     /* TODO (gapra) : Once this is in the same branch as QQ and CF, add network tests for both of them. (this could just go in the CF/QQ packages) */
-
+//    blobServices/default/containers/test-container/blobs/0
 }
