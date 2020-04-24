@@ -159,6 +159,7 @@ class AvroParserTest extends Specification {
         157       || _ /* 1 157 byte ByteBuffer. */
     }
 
+    /* TODO (gapra) : Download a CF file with a single record and add a test with that, validate all parts of map are correct. Also chunk the file. */
     def "Parse CF"() {
         setup:
         AvroParser parser = new AvroParser()
