@@ -12,6 +12,7 @@ import reactor.core.publisher.Flux;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -182,6 +183,8 @@ public class FluxInputStream extends InputStream {
                         this.lastError = new IOException(throwable);
                     } else if (throwable instanceof IllegalArgumentException) {
                         this.lastError = new IOException(throwable);
+                    } else if (throwable instanceof UncheckedIOException) {
+                        this.lastError = ((UncheckedIOException) throwable).getCause();
                     }
                 },
                 // Complete consumer

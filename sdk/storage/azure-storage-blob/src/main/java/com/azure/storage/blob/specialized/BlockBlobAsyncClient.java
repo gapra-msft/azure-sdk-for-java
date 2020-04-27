@@ -25,6 +25,7 @@ import com.azure.storage.blob.models.AccessTier;
 import com.azure.storage.blob.models.BlobHttpHeaders;
 import com.azure.storage.blob.models.BlobQuickQueryAsyncResponse;
 import com.azure.storage.blob.models.BlobQuickQueryDelimitedSerialization;
+import com.azure.storage.blob.models.BlobQuickQueryError;
 import com.azure.storage.blob.models.BlobQuickQueryJsonSerialization;
 import com.azure.storage.blob.models.BlobQuickQuerySerialization;
 import com.azure.storage.blob.models.BlobRange;
@@ -34,19 +35,24 @@ import com.azure.storage.blob.models.BlockList;
 import com.azure.storage.blob.models.BlockListType;
 import com.azure.storage.blob.models.BlockLookupList;
 import com.azure.storage.blob.models.CpkInfo;
+import com.azure.storage.common.ErrorReceiver;
+import com.azure.storage.common.ProgressReceiver;
 import com.azure.storage.common.implementation.Constants;
 import com.azure.storage.internal.avro.implementation.AvroConstants;
 import com.azure.storage.internal.avro.implementation.AvroParser;
+import com.azure.storage.internal.avro.implementation.schema.primitive.AvroNullSchema;
 import com.azure.storage.internal.avro.implementation.util.AvroUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static com.azure.core.util.FluxUtil.monoError;
 import static com.azure.core.util.FluxUtil.withContext;
@@ -567,7 +573,7 @@ public final class BlockBlobAsyncClient extends BlobAsyncClientBase {
      * @return A reactive response containing the queried data.
      */
     public Flux<ByteBuffer> query(String expression) {
-        return queryWithResponse(expression, null, null, null)
+        return queryWithResponse(expression, null, null, null, null, null)
             .flatMapMany(BlobQuickQueryAsyncResponse::getValue);
     }
 
@@ -585,18 +591,20 @@ public final class BlockBlobAsyncClient extends BlobAsyncClientBase {
      * @return A reactive response containing the queried data.
      */
     public Mono<BlobQuickQueryAsyncResponse> queryWithResponse(String expression, BlobQuickQuerySerialization input,
-        BlobQuickQuerySerialization output, BlobRequestConditions requestConditions) {
+        BlobQuickQuerySerialization output, BlobRequestConditions requestConditions,
+        ErrorReceiver<BlobQuickQueryError> errorReceiver, ProgressReceiver progressReceiver) {
         try {
             return withContext(context ->
-                queryWithResponse(expression, input, output, requestConditions, context));
+                queryWithResponse(expression, input, output, requestConditions, errorReceiver, progressReceiver,
+                    context));
         } catch (RuntimeException ex) {
             return monoError(logger, ex);
         }
     }
 
     Mono<BlobQuickQueryAsyncResponse> queryWithResponse(String expression, BlobQuickQuerySerialization input,
-        BlobQuickQuerySerialization output, BlobRequestConditions requestConditions, Context context) {
-
+        BlobQuickQuerySerialization output, BlobRequestConditions requestConditions,
+        ErrorReceiver<BlobQuickQueryError> errorReceiver, ProgressReceiver progressReceiver, Context context) {
         requestConditions = requestConditions == null ? new BlobRequestConditions() : requestConditions;
 
         QuickQuerySerialization in = transformSerialization(input, logger);
@@ -612,42 +620,108 @@ public final class BlockBlobAsyncClient extends BlobAsyncClientBase {
             requestConditions.getIfUnmodifiedSince(), requestConditions.getIfMatch(),
             requestConditions.getIfNoneMatch(), null, getCustomerProvidedKey(), context)
             .map(response -> new BlobQuickQueryAsyncResponse(response.getRequest(), response.getStatusCode(),
-                response.getHeaders(), parse(response.getValue()), response.getDeserializedHeaders()));
+                response.getHeaders(), parse(response.getValue(), o -> this.parseRecord(o, errorReceiver, progressReceiver)),
+                response.getDeserializedHeaders()));
     }
 
-    private Flux<ByteBuffer> parse(Flux<ByteBuffer> avro) {
+    private Flux<ByteBuffer> parse(Flux<ByteBuffer> avro, Function<Object, Mono<ByteBuffer>> recordHandler) {
         AvroParser parser = new AvroParser();
         return avro
             .concatMap(parser::parse)
-            .map(this::parseRecord);
+            .concatMap(recordHandler);
     }
 
-    private ByteBuffer parseRecord(Object o) {
-        if (!(o instanceof Map)) {
-            throw logger.logExceptionAsError(new IllegalArgumentException("Expected object to be of type Map"));
+    private Mono<ByteBuffer> parseRecord(Object r, ErrorReceiver<BlobQuickQueryError> errorReceiver,
+        ProgressReceiver progressReceiver) {
+        if (!(r instanceof Map)) {
+            return Mono.error(new IllegalArgumentException("Expected object to be of type Map"));
         }
-        Map<String, Object> record = (Map<String, Object>) o;
+        Map<String, Object> record = (Map<String, Object>) r;
         Object recordSchema = record.get(AvroConstants.RECORD);
 
-        switch ((String) recordSchema) {
-            case "resultData": {
-                Object data = record.get("data");
-                if (checkParametersNotNull("result data", data)) {
-                    return ByteBuffer.wrap(AvroUtils.getBytes((List<?>)data));
-                }
-            } default:
-                return ByteBuffer.wrap(new byte[0]);
+        switch (recordSchema.toString()) {
+            case "resultData":
+                return parseResultData(record);
+            case "end":
+                return parseEnd(record, progressReceiver);
+            case "progress":
+                return parseProgress(record, progressReceiver);
+            case "error":
+                return parseError(record, errorReceiver);
+            default:
+                return Mono.error(new UncheckedIOException(new IOException(String.format("Unknown record type %s " +
+                        "while parsing query response. ", recordSchema.toString()))));
         }
+    }
 
+    private Mono<ByteBuffer> parseResultData(Object dataRecord) {
+        Map<String, Object> record = (Map<String, Object>) dataRecord;
+        Object data = record.get("data");
+
+        if (checkParametersNotNull("result data", data)) {
+            return Mono.just(ByteBuffer.wrap(AvroUtils.getBytes((List<?>) data)));
+        } else {
+            return Mono.error(new IllegalArgumentException("Failed to parse result data record from blob query response stream."));
+        }
+    }
+
+    private Mono<ByteBuffer> parseEnd(Object endRecord, ProgressReceiver progressReceiver) {
+        Map<String, Object> record = (Map<String, Object>) endRecord;
+        if (progressReceiver != null) {
+            Object total = record.get("totalBytes");
+            if (checkParametersNotNull("end", total)) {
+                progressReceiver.reportProgress((Long) total);
+            } else {
+                return Mono.error(new IllegalArgumentException("Failed to parse end record from blob query response stream."));
+            }
+        }
+        return Mono.empty();
+    }
+
+    private Mono<ByteBuffer> parseProgress(Object progressRecord, ProgressReceiver progressReceiver) {
+        Map<String, Object> record = (Map<String, Object>) progressRecord;
+        if (progressReceiver != null) {
+            Object scanned = record.get("bytesScanned");
+            if (checkParametersNotNull("progress", scanned)) {
+                progressReceiver.reportProgress((Long) scanned);
+            } else {
+                return Mono.error(new IllegalArgumentException("Failed to parse progress record from blob query response stream."));
+            }
+        }
+        return Mono.empty();
+    }
+
+    private Mono<ByteBuffer> parseError(Object errorRecord, ErrorReceiver<BlobQuickQueryError> errorReceiver) {
+        Map<String, Object> record = (Map<String, Object>) errorRecord;
+        Object fatal = record.get("fatal");
+        Object name = record.get("name");
+        Object description = record.get("description");
+        Object position = record.get("position");
+
+        if (checkParametersNotNull("error", fatal, name, description, position)) {
+            BlobQuickQueryError error = new BlobQuickQueryError((Boolean) fatal, name.toString(),
+                description.toString(), (Long) position);
+
+            if (errorReceiver != null) {
+                errorReceiver.reportError(error);
+            } else {
+                return Mono.error(new UncheckedIOException(
+                    new IOException("An error was reported during blob quick query response processing, "
+                        + System.lineSeparator() + error.toString())));
+            }
+        } else {
+            return Mono.error(new IllegalArgumentException("Failed to parse error record from blob query response stream."));
+        }
+        return Mono.empty();
     }
 
     /**
      * Validates that all parameters are non-null. Throws IOException if any of them are.
      */
-    private boolean checkParametersNotNull(String record, Object... data){
+    private boolean checkParametersNotNull(String record, Object... data) {
         for (Object o : data) {
-            if (o == null) {
-                throw logger.logExceptionAsError(new IllegalArgumentException("Failed to parse " + record + " record from blob query response stream."));
+            if (o == null || o instanceof AvroNullSchema.Null) {
+                return false;
             }
         }
         return true;

@@ -48,8 +48,6 @@ public class BlobChangefeedEvent {
         Object dataVersion = record.get("dataVersion");
         Object metadataVersion = record.get("metadataVersion");
 
-        System.out.println((String) subject);
-
         return new BlobChangefeedEvent(isNull(topic) ? null : topic.toString(),
             isNull(subject) ? null : subject.toString(),
             isNull(eventType) ? null : BlobChangefeedEventType.fromString(eventType.toString()),
@@ -63,7 +61,6 @@ public class BlobChangefeedEvent {
     static boolean isNull(Object o) {
         return o == null || o instanceof AvroNullSchema.Null;
     }
-
 
     public String getTopic() {
         return topic;

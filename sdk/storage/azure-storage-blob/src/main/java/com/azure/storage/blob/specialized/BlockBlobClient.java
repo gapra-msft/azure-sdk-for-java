@@ -518,8 +518,8 @@ public final class BlockBlobClient extends BlobClientBase {
      *
          * @param expression The query expression.
         */
-    public final FluxInputStream openInputStream(String expression) {
-        return openInputStream(expression, null, null, null, null, null);
+    public final BlobQuickQueryInputStream openQueryInputStream(String expression) {
+        return openQueryInputStream(expression, null, null, null, null, null);
     }
 
     /**
@@ -533,21 +533,22 @@ public final class BlockBlobClient extends BlobClientBase {
      * @param input {@link BlobQuickQuerySerialization Serialization input}.
      * @param output {@link BlobQuickQuerySerialization Serialization output}.
      * @param requestConditions {@link BlobRequestConditions}
-     * @param nonFatalErrorReceiver {@link ErrorReceiver} of {@link BlobQuickQueryError}
+     * @param errorReceiver {@link ErrorReceiver} of {@link BlobQuickQueryError}
      * @param progressReceiver {@link ProgressReceiver}
      */
-    public final FluxInputStream openInputStream(String expression, BlobQuickQuerySerialization input,
+    public final BlobQuickQueryInputStream openQueryInputStream(String expression, BlobQuickQuerySerialization input,
         BlobQuickQuerySerialization output, BlobRequestConditions requestConditions,
-        ErrorReceiver<BlobQuickQueryError> nonFatalErrorReceiver, ProgressReceiver progressReceiver) {
+        ErrorReceiver<BlobQuickQueryError> errorReceiver, ProgressReceiver progressReceiver) {
+
+        /* Validate input before opening input stream. */
 
         // Data to subscribe to and read from.
-        Flux<ByteBuffer> data = client.queryWithResponse(expression, input, output, requestConditions)
+        Flux<ByteBuffer> data = client.queryWithResponse(expression, input, output, requestConditions, errorReceiver,
+            progressReceiver)
             .flatMapMany(BlobQuickQueryAsyncResponse::getValue);
 
         // Create input stream from the data.
-        FluxInputStream fluxInputStream = new FluxInputStream(data);
-
-        return fluxInputStream;
+        return new BlobQuickQueryInputStream(data);
     }
 
     /**
@@ -563,7 +564,8 @@ public final class BlockBlobClient extends BlobClientBase {
      * @throws NullPointerException if {@code stream} is null.
      */
     public void query(OutputStream stream, String expression) {
-        queryWithResponse(stream, expression, null, null, null, null, Context.NONE);
+        queryWithResponse(stream, expression, null, null, null, null,
+            null, null, Context.NONE);
     }
 
     /**
@@ -586,10 +588,11 @@ public final class BlockBlobClient extends BlobClientBase {
      */
    public BlobQuickQueryResponse queryWithResponse(OutputStream stream, String expression,
         BlobQuickQuerySerialization input, BlobQuickQuerySerialization output, BlobRequestConditions requestConditions,
-        Duration timeout, Context context) {
+       ErrorReceiver<BlobQuickQueryError> errorReceiver, ProgressReceiver progressReceiver, Duration timeout,
+       Context context) {
         StorageImplUtils.assertNotNull("stream", stream);
         Mono<BlobQuickQueryResponse> download = client
-            .queryWithResponse(expression, input, output, requestConditions, context)
+            .queryWithResponse(expression, input, output, requestConditions, errorReceiver, progressReceiver, context)
             .flatMap(response -> response.getValue().reduce(stream, (outputStream, buffer) -> {
                 try {
                     outputStream.write(FluxUtil.byteBufferToArray(buffer));

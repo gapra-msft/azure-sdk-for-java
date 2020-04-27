@@ -311,7 +311,8 @@ public class AvroType {
                 if (jsonSchema.get("aliases") != null) {
                     throw new IllegalArgumentException("Unexpected aliases in schema.");
                 }
-                String name = jsonSchema.get("name").asText();
+                String fullName = jsonSchema.get("name").asText();
+                String name = fullName.substring(fullName.lastIndexOf('.') + 1);
                 List<AvroRecordField> fields = getRecordFields(jsonSchema.withArray("fields"));
                 return new AvroRecordType(name, fields);
             }
