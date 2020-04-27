@@ -3,9 +3,6 @@
 
 package com.azure.storage.internal.avro.implementation;
 
-import com.azure.storage.blob.BlobServiceAsyncClient;
-import com.azure.storage.blob.BlobServiceClientBuilder;
-import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.internal.avro.implementation.schema.AvroSchema;
 import com.azure.storage.internal.avro.implementation.schema.AvroType;
 import com.azure.storage.internal.avro.implementation.schema.file.AvroBlockSchema;
@@ -15,7 +12,6 @@ import reactor.core.publisher.Flux;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A class that represents a push based AvroParser that can parse avro data from a reactive stream.

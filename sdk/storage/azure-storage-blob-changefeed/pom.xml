@@ -45,11 +45,6 @@
     </dependency>
     <dependency>
       <groupId>com.azure</groupId>
-      <artifactId>azure-storage-internal-avro</artifactId>
-      <version>12.0.0-beta.1</version> <!-- {x-version-update;com.azure:azure-storage-internal-avro;current} -->
-    </dependency>
-    <dependency>
-      <groupId>com.azure</groupId>
       <artifactId>azure-core-test</artifactId>
       <version>1.2.0</version> <!-- {x-version-update;com.azure:azure-core-test;dependency} -->
       <scope>test</scope>
@@ -216,7 +211,7 @@
 <!--                &#45;&#45;add-exports com.azure.core/com.azure.core.implementation.serializer.jackson=ALL-UNNAMED-->
 <!--                &#45;&#45;add-exports com.azure.core/com.azure.core.implementation.util=ALL-UNNAMED-->
 <!--                &#45;&#45;add-opens com.azure.storage.common/com.azure.storage.common.implementation=ALL-UNNAMED-->
-<!--                &#45;&#45;add-opens com.azure.storage.changefeed/com.azure.storage.blob.specialized.cryptography=ALL-UNNAMED-->
+                --add-opens com.azure.storage.changefeed=ALL-UNNAMED
 <!--                &#45;&#45;add-reads com.azure.core=ALL-UNNAMED-->
 <!--                &#45;&#45;add-reads com.azure.core.test=ALL-UNNAMED-->
 <!--                &#45;&#45;add-reads com.azure.core.amqp=ALL-UNNAMED-->
