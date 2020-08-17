@@ -211,7 +211,7 @@ class ShareAsyncAPITests extends APISpec {
         primaryShareAsyncClient.createWithResponse(null, 1).block()
         when:
         def getQuotaBeforeVerifier = StepVerifier.create(primaryShareAsyncClient.getProperties())
-        def setQuotaVerifier = StepVerifier.create(primaryShareAsyncClient.setQuotaWithResponse(2, null))
+        def setQuotaVerifier = StepVerifier.create(primaryShareAsyncClient.setPropertiesWithResponse(2, null))
         def getQuotaAfterVerifier = StepVerifier.create(primaryShareAsyncClient.getProperties())
         then:
         getQuotaBeforeVerifier.assertNext {

@@ -20,6 +20,7 @@ import com.azure.storage.file.share.models.ShareProperties;
 import com.azure.storage.file.share.models.ShareSnapshotInfo;
 import com.azure.storage.file.share.models.ShareStatistics;
 import com.azure.storage.file.share.options.ShareCreateOptions;
+import com.azure.storage.file.share.options.ShareSetPropertiesOptions;
 import com.azure.storage.file.share.sas.ShareServiceSasSignatureValues;
 import reactor.core.publisher.Mono;
 
@@ -391,7 +392,31 @@ public class ShareClient {
      * @throws RuntimeException if the operation doesn't complete before the timeout concludes.
      */
     public Response<ShareInfo> setQuotaWithResponse(int quotaInGB, Duration timeout, Context context) {
-        Mono<Response<ShareInfo>> response = client.setQuotaWithResponse(quotaInGB, context);
+        Mono<Response<ShareInfo>> response = client.setPropertiesWithResponse(new ShareSetPropertiesOptions()
+            .setQuotaInGB(quotaInGB), context);
+        return StorageImplUtils.blockWithOptionalTimeout(response, timeout);
+    }
+
+    /**
+     * Sets properties for a share.
+     *
+     * <p><strong>Code Samples</strong></p>
+     *
+     * {@codesnippet com.azure.storage.file.share.ShareClient.setPropertiesWithResponse#ShareSetPropertiesOptions-Duration-Context}
+     *
+     * <p>For more information, see the
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/get-share-properties">Azure Docs</a>.</p>
+     *
+     * @param options {@link ShareSetPropertiesOptions}
+     * @param timeout An optional timeout applied to the operation. If a response is not returned before the timeout
+     * concludes a {@link RuntimeException} will be thrown.
+     * @param context Additional context that is passed through the Http pipeline during the service call.
+     * @return A response containing {@link ShareProperties properties of the share} with response status code
+     * @throws RuntimeException if the operation doesn't complete before the timeout concludes.
+     */
+    public Response<ShareInfo> setPropertiesWithResponse(ShareSetPropertiesOptions options, Duration timeout,
+        Context context) {
+        Mono<Response<ShareInfo>> response = client.setPropertiesWithResponse(options, context);
         return StorageImplUtils.blockWithOptionalTimeout(response, timeout);
     }
 

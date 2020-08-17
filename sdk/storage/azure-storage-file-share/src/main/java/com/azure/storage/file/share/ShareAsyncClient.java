@@ -35,6 +35,7 @@ import com.azure.storage.file.share.models.ShareSnapshotInfo;
 import com.azure.storage.file.share.models.ShareStatistics;
 import com.azure.storage.file.share.models.ShareStorageException;
 import com.azure.storage.file.share.options.ShareCreateOptions;
+import com.azure.storage.file.share.options.ShareSetPropertiesOptions;
 import com.azure.storage.file.share.sas.ShareServiceSasSignatureValues;
 import reactor.core.publisher.Mono;
 
@@ -439,7 +440,7 @@ public class ShareAsyncClient {
      */
     public Mono<Response<ShareProperties>> getPropertiesWithResponse() {
         try {
-            return withContext(context -> getPropertiesWithResponse(context));
+            return withContext(this::getPropertiesWithResponse);
         } catch (RuntimeException ex) {
             return monoError(logger, ex);
         }
@@ -496,15 +497,40 @@ public class ShareAsyncClient {
      */
     public Mono<Response<ShareInfo>> setQuotaWithResponse(int quotaInGB) {
         try {
-            return withContext(context -> setQuotaWithResponse(quotaInGB, context));
+            return withContext(context -> setPropertiesWithResponse(new ShareSetPropertiesOptions()
+                .setQuotaInGB(quotaInGB), context));
         } catch (RuntimeException ex) {
             return monoError(logger, ex);
         }
     }
 
-    Mono<Response<ShareInfo>> setQuotaWithResponse(int quotaInGB, Context context) {
+    /**
+     * Sets properties for a share.
+     *
+     * <p><strong>Code Samples</strong></p>
+     *
+     * {@codesnippet com.azure.storage.file.share.ShareAsyncClient.setPropertiesWithResponse#ShareSetPropertiesOptions}
+     *
+     * <p>For more information, see the
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/get-share-properties">Azure Docs</a>.</p>
+     *
+     * @param options {@link ShareSetPropertiesOptions}
+     * @return A response containing the {@link ShareInfo information about the share} with headers and response status
+     * code
+     */
+    public Mono<Response<ShareInfo>> setPropertiesWithResponse(ShareSetPropertiesOptions options) {
+        try {
+            return withContext(context -> setPropertiesWithResponse(options, context));
+        } catch (RuntimeException ex) {
+            return monoError(logger, ex);
+        }
+    }
+
+    Mono<Response<ShareInfo>> setPropertiesWithResponse(ShareSetPropertiesOptions options, Context context) {
+        options = options == null ? new ShareSetPropertiesOptions() : options;
         context = context == null ? Context.NONE : context;
-        return azureFileStorageClient.shares().setPropertiesWithRestResponseAsync(shareName, null, quotaInGB, null,
+        return azureFileStorageClient.shares().setPropertiesWithRestResponseAsync(shareName, null,
+            options.getQuotaInGB(), options.getAccessTier(),
             context.addData(AZ_TRACING_NAMESPACE_KEY, STORAGE_TRACING_NAMESPACE_VALUE))
             .map(this::mapToShareInfoResponse);
     }

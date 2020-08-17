@@ -13,6 +13,7 @@ import com.azure.storage.file.share.models.ShareRequestConditions;
 import com.azure.storage.file.share.models.ShareSignedIdentifier;
 import com.azure.storage.file.share.models.NtfsFileAttributes;
 import com.azure.storage.file.share.options.ShareCreateOptions;
+import com.azure.storage.file.share.options.ShareSetPropertiesOptions;
 import com.azure.storage.file.share.sas.ShareSasPermission;
 import com.azure.storage.file.share.sas.ShareServiceSasSignatureValues;
 
@@ -444,6 +445,19 @@ public class ShareAsyncJavaDocCodeSamples {
         // END: com.azure.storage.file.share.ShareAsyncClient.setQuotaWithResponse#int
     }
 
+    /**
+     * Generates a code sample for using {@link ShareAsyncClient#setPropertiesWithResponse(ShareSetPropertiesOptions)}
+     */
+    public void setPropertiesWithResponse() {
+        ShareAsyncClient shareAsyncClient = createAsyncClientWithSASToken();
+        // BEGIN: com.azure.storage.file.share.ShareAsyncClient.setPropertiesWithResponse#ShareSetPropertiesOptions
+        shareAsyncClient.setPropertiesWithResponse(new ShareSetPropertiesOptions().setQuotaInGB(1024)
+            .setAccessTier(ShareAccessTier.HOT))
+            .subscribe(response ->
+                System.out.printf("Setting the share quota completed with status code %d", response.getStatusCode())
+            );
+        // END: com.azure.storage.file.share.ShareAsyncClient.setPropertiesWithResponse#ShareSetPropertiesOptions
+    }
 
     /**
      * Generates a code sample for using {@link ShareAsyncClient#setMetadata(Map)}

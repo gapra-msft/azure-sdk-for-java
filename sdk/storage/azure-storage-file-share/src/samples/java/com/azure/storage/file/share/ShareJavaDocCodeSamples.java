@@ -16,6 +16,7 @@ import com.azure.storage.file.share.models.ShareProperties;
 import com.azure.storage.file.share.models.ShareSnapshotInfo;
 import com.azure.storage.file.share.models.ShareStatistics;
 import com.azure.storage.file.share.options.ShareCreateOptions;
+import com.azure.storage.file.share.options.ShareSetPropertiesOptions;
 import com.azure.storage.file.share.sas.ShareSasPermission;
 import com.azure.storage.file.share.sas.ShareServiceSasSignatureValues;
 
@@ -417,6 +418,19 @@ public class ShareJavaDocCodeSamples {
             Duration.ofSeconds(1), new Context(key1, value1));
         System.out.printf("Setting the share quota completed with status code %d", response.getStatusCode());
         // END: com.azure.storage.file.share.ShareClient.setQuotaWithResponse#int-duration-context
+    }
+
+    /**
+     * Generates a code sample for using {@link ShareClient#setPropertiesWithResponse(ShareSetPropertiesOptions, Duration, Context)}
+     */
+    public void setPropertiesWithResponse() {
+        ShareClient shareClient = createClientWithSASToken();
+        // BEGIN: com.azure.storage.file.share.ShareClient.setPropertiesWithResponse#ShareSetPropertiesOptions-Duration-Context
+        Response<ShareInfo> response = shareClient.setPropertiesWithResponse(
+            new ShareSetPropertiesOptions().setQuotaInGB(1024).setAccessTier(ShareAccessTier.HOT),
+            Duration.ofSeconds(1), new Context(key1, value1));
+        System.out.printf("Setting the share quota completed with status code %d", response.getStatusCode());
+        // END: com.azure.storage.file.share.ShareClient.setPropertiesWithResponse#ShareSetPropertiesOptions-Duration-Context
     }
 
     /**
