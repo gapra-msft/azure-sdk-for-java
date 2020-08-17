@@ -34,6 +34,7 @@ import com.azure.storage.file.share.models.ShareSignedIdentifier;
 import com.azure.storage.file.share.models.ShareSnapshotInfo;
 import com.azure.storage.file.share.models.ShareStatistics;
 import com.azure.storage.file.share.models.ShareStorageException;
+import com.azure.storage.file.share.options.ShareCreateOptions;
 import com.azure.storage.file.share.sas.ShareServiceSasSignatureValues;
 import reactor.core.publisher.Mono;
 
@@ -216,7 +217,7 @@ public class ShareAsyncClient {
      */
     public Mono<ShareInfo> create() {
         try {
-            return createWithResponse(null, null).flatMap(FluxUtil::toMono);
+            return createWithResponse((ShareCreateOptions) null, null).flatMap(FluxUtil::toMono);
         } catch (RuntimeException ex) {
             return monoError(logger, ex);
         }
@@ -247,17 +248,40 @@ public class ShareAsyncClient {
      */
     public Mono<Response<ShareInfo>> createWithResponse(Map<String, String> metadata, Integer quotaInGB) {
         try {
-            return withContext(context -> createWithResponse(metadata, quotaInGB, context));
+            return withContext(context -> createWithResponse(new ShareCreateOptions().setMetadata(metadata)
+                .setQuotaInGB(quotaInGB), context));
         } catch (RuntimeException ex) {
             return monoError(logger, ex);
         }
     }
 
-    Mono<Response<ShareInfo>> createWithResponse(Map<String, String> metadata, Integer quotaInGB, Context context) {
+    /**
+     * Creates the share in the storage account with the specified options.
+     *
+     * <p><strong>Code Samples</strong></p>
+     *
+     * {@codesnippet com.azure.storage.file.share.ShareAsyncClient.createWithResponse#ShareCreateOptions}
+     *
+     * <p>For more information, see the
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/create-share">Azure Docs</a>.</p>
+     *
+     * @param options {@link ShareCreateOptions}
+     * @return A response containing information about the {@link ShareInfo share} and the status its creation.
+     */
+    public Mono<Response<ShareInfo>> createWithResponse(ShareCreateOptions options) {
+        try {
+            return withContext(context -> createWithResponse(options, context));
+        } catch (RuntimeException ex) {
+            return monoError(logger, ex);
+        }
+    }
+
+    Mono<Response<ShareInfo>> createWithResponse(ShareCreateOptions options, Context context) {
+        options = options == null ? new ShareCreateOptions() : options;
         context = context == null ? Context.NONE : context;
         return azureFileStorageClient.shares()
-            .createWithRestResponseAsync(shareName, null, metadata, quotaInGB,
-                context.addData(AZ_TRACING_NAMESPACE_KEY, STORAGE_TRACING_NAMESPACE_VALUE))
+            .createWithRestResponseAsync(shareName, null, options.getMetadata(), options.getQuotaInGB(),
+                options.getAccessTier(), context.addData(AZ_TRACING_NAMESPACE_KEY, STORAGE_TRACING_NAMESPACE_VALUE))
             .map(this::mapToShareInfoResponse);
     }
 
@@ -480,7 +504,7 @@ public class ShareAsyncClient {
 
     Mono<Response<ShareInfo>> setQuotaWithResponse(int quotaInGB, Context context) {
         context = context == null ? Context.NONE : context;
-        return azureFileStorageClient.shares().setQuotaWithRestResponseAsync(shareName, null, quotaInGB,
+        return azureFileStorageClient.shares().setPropertiesWithRestResponseAsync(shareName, null, quotaInGB, null,
             context.addData(AZ_TRACING_NAMESPACE_KEY, STORAGE_TRACING_NAMESPACE_VALUE))
             .map(this::mapToShareInfoResponse);
     }

@@ -6,6 +6,7 @@ import com.azure.core.http.rest.Response;
 import com.azure.core.util.Context;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.file.share.models.ShareAccessPolicy;
+import com.azure.storage.file.share.models.ShareAccessTier;
 import com.azure.storage.file.share.models.ShareFileHttpHeaders;
 import com.azure.storage.file.share.models.ShareRequestConditions;
 import com.azure.storage.file.share.models.ShareSignedIdentifier;
@@ -14,6 +15,7 @@ import com.azure.storage.file.share.models.ShareInfo;
 import com.azure.storage.file.share.models.ShareProperties;
 import com.azure.storage.file.share.models.ShareSnapshotInfo;
 import com.azure.storage.file.share.models.ShareStatistics;
+import com.azure.storage.file.share.options.ShareCreateOptions;
 import com.azure.storage.file.share.sas.ShareSasPermission;
 import com.azure.storage.file.share.sas.ShareServiceSasSignatureValues;
 
@@ -158,6 +160,21 @@ public class ShareJavaDocCodeSamples {
             null, Duration.ofSeconds(1), new Context(key1, value1));
         System.out.println("Complete creating the shares with status code: " + response.getStatusCode());
         // END: ShareClient.createWithResponse#map-integer-duration-context.metadata
+    }
+
+    /**
+     * Generates a code sample for using {@link ShareClient#createWithResponse(ShareCreateOptions, Duration, Context)}
+     */
+    public void createOptions() {
+        ShareClient shareClient = createClientWithSASToken();
+        // BEGIN: com.azure.storage.file.share.ShareClient.createWithResponse#ShareCreateOptions-Duration-Context
+        Map<String, String> metadata = Collections.singletonMap("share", "metadata");
+        Integer quotaInGb = 10;
+        ShareAccessTier accessTier = ShareAccessTier.HOT;
+        Response<ShareInfo> response = shareClient.createWithResponse(new ShareCreateOptions().setMetadata(metadata)
+            .setQuotaInGB(quotaInGb).setAccessTier(accessTier), Duration.ofSeconds(1), new Context(key1, value1));
+        System.out.println("Complete creating the shares with status code: " + response.getStatusCode());
+        // END: com.azure.storage.file.share.ShareClient.createWithResponse#ShareCreateOptions-Duration-Context
     }
 
     /**

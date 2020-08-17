@@ -10,6 +10,7 @@ import com.azure.storage.common.sas.AccountSasService;
 import com.azure.storage.common.sas.AccountSasSignatureValues;
 import com.azure.storage.file.share.models.ShareServiceProperties;
 import com.azure.storage.file.share.models.ListSharesOptions;
+import com.azure.storage.file.share.options.ShareCreateOptions;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -121,6 +122,22 @@ public class ShareServiceAsyncJavaDocCodeSamples {
                 () -> System.out.println("Complete creating the share!")
             );
         // END: com.azure.storage.file.share.ShareServiceAsyncClient.createShareWithResponse#string-map-integer.quota
+    }
+
+    /**
+     * Generates a code sample for using {@link ShareServiceAsyncClient#createShareWithResponse(String, ShareCreateOptions)}.
+     */
+    public void createShareAsyncOptions() {
+        ShareServiceAsyncClient fileServiceAsyncClient = createAsyncClientWithSASToken();
+        // BEGIN: com.azure.storage.file.share.ShareServiceAsyncClient.createShareWithResponse#String-ShareCreateOptions
+        fileServiceAsyncClient.createShareWithResponse("test", new ShareCreateOptions().setQuotaInGB(10))
+            .subscribe(
+                response -> System.out.printf("Creating the share completed with status code %d",
+                    response.getStatusCode()),
+                error -> System.err.print(error.toString()),
+                () -> System.out.println("Complete creating the share!")
+            );
+        // END: com.azure.storage.file.share.ShareServiceAsyncClient.createShareWithResponse#String-ShareCreateOptions
     }
 
     /**

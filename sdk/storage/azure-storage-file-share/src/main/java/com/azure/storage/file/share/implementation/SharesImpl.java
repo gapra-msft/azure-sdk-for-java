@@ -33,8 +33,9 @@ import com.azure.storage.file.share.implementation.models.SharesGetStatisticsRes
 import com.azure.storage.file.share.implementation.models.SharesRestoreResponse;
 import com.azure.storage.file.share.implementation.models.SharesSetAccessPolicyResponse;
 import com.azure.storage.file.share.implementation.models.SharesSetMetadataResponse;
-import com.azure.storage.file.share.implementation.models.SharesSetQuotaResponse;
+import com.azure.storage.file.share.implementation.models.SharesSetPropertiesResponse;
 import com.azure.storage.file.share.models.ShareStorageException;
+import com.azure.storage.file.share.models.ShareAccessTier;
 import com.azure.storage.file.share.models.ShareSignedIdentifier;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +76,7 @@ public final class SharesImpl {
         @Put("{shareName}")
         @ExpectedResponses({201})
         @UnexpectedResponseExceptionType(ShareStorageException.class)
-        Mono<SharesCreateResponse> create(@PathParam("shareName") String shareName, @HostParam("url") String url, @QueryParam("timeout") Integer timeout, @HeaderParam("x-ms-meta-") Map<String, String> metadata, @HeaderParam("x-ms-share-quota") Integer quota, @HeaderParam("x-ms-version") String version, @QueryParam("restype") String restype, Context context);
+        Mono<SharesCreateResponse> create(@PathParam("shareName") String shareName, @HostParam("url") String url, @QueryParam("timeout") Integer timeout, @HeaderParam("x-ms-meta-") Map<String, String> metadata, @HeaderParam("x-ms-share-quota") Integer quota, @HeaderParam("x-ms-access-tier") ShareAccessTier accessTier, @HeaderParam("x-ms-version") String version, @QueryParam("restype") String restype, Context context);
 
         @Get("{shareName}")
         @ExpectedResponses({200})
@@ -105,7 +106,7 @@ public final class SharesImpl {
         @Put("{shareName}")
         @ExpectedResponses({200})
         @UnexpectedResponseExceptionType(ShareStorageException.class)
-        Mono<SharesSetQuotaResponse> setQuota(@PathParam("shareName") String shareName, @HostParam("url") String url, @QueryParam("timeout") Integer timeout, @HeaderParam("x-ms-version") String version, @HeaderParam("x-ms-share-quota") Integer quota, @QueryParam("restype") String restype, @QueryParam("comp") String comp, Context context);
+        Mono<SharesSetPropertiesResponse> setProperties(@PathParam("shareName") String shareName, @HostParam("url") String url, @QueryParam("timeout") Integer timeout, @HeaderParam("x-ms-version") String version, @HeaderParam("x-ms-share-quota") Integer quota, @HeaderParam("x-ms-access-tier") ShareAccessTier accessTier, @QueryParam("restype") String restype, @QueryParam("comp") String comp, Context context);
 
         @Put("{shareName}")
         @ExpectedResponses({200})
@@ -146,8 +147,9 @@ public final class SharesImpl {
         final Integer timeout = null;
         final Map<String, String> metadata = null;
         final Integer quota = null;
+        final ShareAccessTier accessTier = null;
         final String restype = "share";
-        return service.create(shareName, this.client.getUrl(), timeout, metadata, quota, this.client.getVersion(), restype, context);
+        return service.create(shareName, this.client.getUrl(), timeout, metadata, quota, accessTier, this.client.getVersion(), restype, context);
     }
 
     /**
@@ -157,14 +159,15 @@ public final class SharesImpl {
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param quota Specifies the maximum size of the share, in gigabytes.
+     * @param accessTier Specifies the access tier of the share. Possible values include: 'TransactionOptimized', 'Hot', 'Cold'.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @return a Mono which performs the network request upon subscription.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<SharesCreateResponse> createWithRestResponseAsync(String shareName, Integer timeout, Map<String, String> metadata, Integer quota, Context context) {
+    public Mono<SharesCreateResponse> createWithRestResponseAsync(String shareName, Integer timeout, Map<String, String> metadata, Integer quota, ShareAccessTier accessTier, Context context) {
         final String restype = "share";
-        return service.create(shareName, this.client.getUrl(), timeout, metadata, quota, this.client.getVersion(), restype, context);
+        return service.create(shareName, this.client.getUrl(), timeout, metadata, quota, accessTier, this.client.getVersion(), restype, context);
     }
 
     /**
@@ -336,7 +339,7 @@ public final class SharesImpl {
     }
 
     /**
-     * Sets quota for the specified share.
+     * Sets properties for the specified share.
      *
      * @param shareName The name of the target share.
      * @param context The context to associate with this operation.
@@ -344,29 +347,31 @@ public final class SharesImpl {
      * @return a Mono which performs the network request upon subscription.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<SharesSetQuotaResponse> setQuotaWithRestResponseAsync(String shareName, Context context) {
+    public Mono<SharesSetPropertiesResponse> setPropertiesWithRestResponseAsync(String shareName, Context context) {
         final Integer timeout = null;
         final Integer quota = null;
+        final ShareAccessTier accessTier = null;
         final String restype = "share";
         final String comp = "properties";
-        return service.setQuota(shareName, this.client.getUrl(), timeout, this.client.getVersion(), quota, restype, comp, context);
+        return service.setProperties(shareName, this.client.getUrl(), timeout, this.client.getVersion(), quota, accessTier, restype, comp, context);
     }
 
     /**
-     * Sets quota for the specified share.
+     * Sets properties for the specified share.
      *
      * @param shareName The name of the target share.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting Timeouts for File Service Operations.&lt;/a&gt;.
      * @param quota Specifies the maximum size of the share, in gigabytes.
+     * @param accessTier Specifies the access tier of the share. Possible values include: 'TransactionOptimized', 'Hot', 'Cold'.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @return a Mono which performs the network request upon subscription.
      */
     @ServiceMethod(returns = ReturnType.SINGLE)
-    public Mono<SharesSetQuotaResponse> setQuotaWithRestResponseAsync(String shareName, Integer timeout, Integer quota, Context context) {
+    public Mono<SharesSetPropertiesResponse> setPropertiesWithRestResponseAsync(String shareName, Integer timeout, Integer quota, ShareAccessTier accessTier, Context context) {
         final String restype = "share";
         final String comp = "properties";
-        return service.setQuota(shareName, this.client.getUrl(), timeout, this.client.getVersion(), quota, restype, comp, context);
+        return service.setProperties(shareName, this.client.getUrl(), timeout, this.client.getVersion(), quota, accessTier, restype, comp, context);
     }
 
     /**

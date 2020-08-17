@@ -2,15 +2,21 @@
 // Licensed under the MIT License.
 package com.azure.storage.file.share;
 
+import com.azure.core.http.rest.Response;
+import com.azure.core.util.Context;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.file.share.models.ShareAccessPolicy;
+import com.azure.storage.file.share.models.ShareAccessTier;
 import com.azure.storage.file.share.models.ShareFileHttpHeaders;
+import com.azure.storage.file.share.models.ShareInfo;
 import com.azure.storage.file.share.models.ShareRequestConditions;
 import com.azure.storage.file.share.models.ShareSignedIdentifier;
 import com.azure.storage.file.share.models.NtfsFileAttributes;
+import com.azure.storage.file.share.options.ShareCreateOptions;
 import com.azure.storage.file.share.sas.ShareSasPermission;
 import com.azure.storage.file.share.sas.ShareServiceSasSignatureValues;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -145,6 +151,25 @@ public class ShareAsyncJavaDocCodeSamples {
             () -> System.out.println("Complete creating the share!")
         );
         // END: com.azure.storage.file.share.ShareAsyncClient.createWithResponse#map-integer.quota
+    }
+
+    /**
+     * Generates a code sample for using {@link ShareAsyncClient#createWithResponse(ShareCreateOptions)}
+     */
+    public void createOptions() {
+        ShareAsyncClient shareAsyncClient = createAsyncClientWithSASToken();
+        // BEGIN: com.azure.storage.file.share.ShareAsyncClient.createWithResponse#ShareCreateOptions
+        Map<String, String> metadata = Collections.singletonMap("share", "metadata");
+        Integer quotaInGb = 10;
+        ShareAccessTier accessTier = ShareAccessTier.HOT;
+        shareAsyncClient.createWithResponse(new ShareCreateOptions().setMetadata(metadata).setAccessTier(accessTier)
+            .setQuotaInGB(quotaInGb))
+            .subscribe(
+            response -> System.out.printf("Creating the share completed with status code %d", response.getStatusCode()),
+            error -> System.err.print(error.toString()),
+            () -> System.out.println("Complete creating the share!")
+        );
+        // END: com.azure.storage.file.share.ShareAsyncClient.createWithResponse#ShareCreateOptions
     }
 
     /**

@@ -19,6 +19,7 @@ import com.azure.storage.file.share.models.ShareInfo;
 import com.azure.storage.file.share.models.ShareProperties;
 import com.azure.storage.file.share.models.ShareSnapshotInfo;
 import com.azure.storage.file.share.models.ShareStatistics;
+import com.azure.storage.file.share.options.ShareCreateOptions;
 import com.azure.storage.file.share.sas.ShareServiceSasSignatureValues;
 import reactor.core.publisher.Mono;
 
@@ -185,7 +186,31 @@ public class ShareClient {
      */
     public Response<ShareInfo> createWithResponse(Map<String, String> metadata, Integer quotaInGB, Duration timeout,
         Context context) {
-        Mono<Response<ShareInfo>> response = client.createWithResponse(metadata, quotaInGB, context);
+        return createWithResponse(new ShareCreateOptions().setMetadata(metadata).setQuotaInGB(quotaInGB), timeout,
+            context);
+    }
+
+    /**
+     * Creates the share in the storage account with the specified options.
+     *
+     * <p><strong>Code Samples</strong></p>
+     *
+     * {@codesnippet com.azure.storage.file.share.ShareClient.createWithResponse#ShareCreateOptions-Duration-Context}
+     *
+     * <p>For more information, see the
+     * <a href="https://docs.microsoft.com/en-us/rest/api/storageservices/create-share">Azure Docs</a>.</p>
+     *
+     * @param options {@link ShareCreateOptions}
+     * @param timeout An optional timeout applied to the operation. If a response is not returned before the timeout
+     * concludes a {@link RuntimeException} will be thrown.
+     * @param context Additional context that is passed through the Http pipeline during the service call.
+     * @return A response containing the {@link ShareInfo information about the share} and the status its creation.
+     * @throws ShareStorageException If the share already exists with different metadata or {@code quotaInGB} is outside
+     * the allowed range.
+     * @throws RuntimeException if the operation doesn't complete before the timeout concludes.
+     */
+    public Response<ShareInfo> createWithResponse(ShareCreateOptions options, Duration timeout, Context context) {
+        Mono<Response<ShareInfo>> response = client.createWithResponse(options, context);
         return StorageImplUtils.blockWithOptionalTimeout(response, timeout);
     }
 
