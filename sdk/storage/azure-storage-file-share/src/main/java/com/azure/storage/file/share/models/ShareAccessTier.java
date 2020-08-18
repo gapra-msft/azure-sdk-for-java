@@ -23,9 +23,9 @@ public final class ShareAccessTier extends ExpandableStringEnum<ShareAccessTier>
     public static final ShareAccessTier HOT = fromString("Hot");
 
     /**
-     * Static value Cold for ShareAccessTier.
+     * Static value Cool for ShareAccessTier.
      */
-    public static final ShareAccessTier COLD = fromString("Cold");
+    public static final ShareAccessTier COOL = fromString("Cool");
 
     /**
      * Creates or finds a ShareAccessTier from its string representation.

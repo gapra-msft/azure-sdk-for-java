@@ -7,10 +7,13 @@ import com.azure.core.http.netty.NettyAsyncHttpClientBuilder
 import com.azure.storage.common.StorageSharedKeyCredential
 import com.azure.storage.common.implementation.Constants
 import com.azure.storage.file.share.models.NtfsFileAttributes
+import com.azure.storage.file.share.models.ShareAccessTier
 import com.azure.storage.file.share.models.ShareErrorCode
 import com.azure.storage.file.share.models.ShareFileHttpHeaders
 import com.azure.storage.file.share.models.ShareSnapshotInfo
 import com.azure.storage.file.share.models.ShareStorageException
+import com.azure.storage.file.share.options.ShareCreateOptions
+import com.azure.storage.file.share.options.ShareSetPropertiesOptions
 import spock.lang.Unroll
 
 import java.time.LocalDateTime
@@ -109,14 +112,15 @@ class ShareAPITests extends APISpec {
     @Unroll
     def "Create share with args"() {
         expect:
-        FileTestHelper.assertResponseStatusCode(primaryShareClient.createWithResponse(metadata, quota, null, null), 201)
+        FileTestHelper.assertResponseStatusCode(primaryShareClient.createWithResponse(new ShareCreateOptions().setMetadata(metadata).setQuotaInGB(quota).setAccessTier(shareAccessTier), null, null), 201)
 
         where:
-        metadata     | quota
-        null         | null
-        null         | 1
-        testMetadata | null
-        testMetadata | 1
+        metadata     | quota | shareAccessTier
+        null         | null  | null
+        null         | 1     | null
+        testMetadata | null  | null
+        null         | null  | ShareAccessTier.HOT
+        testMetadata | 1     | ShareAccessTier.TRANSACTION_OPTIMIZED
     }
 
     @Unroll
@@ -259,6 +263,29 @@ class ShareAPITests extends APISpec {
     def "Set quota error"() {
         when:
         primaryShareClient.setQuota(2)
+        then:
+        def e = thrown(ShareStorageException)
+        FileTestHelper.assertExceptionStatusCodeAndMessage(e, 404, ShareErrorCode.SHARE_NOT_FOUND)
+    }
+
+    def "Set properties"() {
+        given:
+        primaryShareClient.createWithResponse(null, 1, null, null)
+
+        when:
+        def getPropertiesBeforeResponse = primaryShareClient.getProperties()
+        def setPropertiesResponse = primaryShareClient.setPropertiesWithResponse(new ShareSetPropertiesOptions().setAccessTier(ShareAccessTier.HOT).setQuotaInGB(1), null, null)
+        def getPropertiesAfterResponse = primaryShareClient.getProperties()
+
+        then:
+        getPropertiesBeforeResponse.getAccessTier() == ShareAccessTier.TRANSACTION_OPTIMIZED.toString()
+        FileTestHelper.assertResponseStatusCode(setPropertiesResponse, 200)
+        getPropertiesAfterResponse.getAccessTier() == ShareAccessTier.HOT.toString()
+    }
+
+    def "Set properties error"() {
+        when:
+        primaryShareClient.setPropertiesWithResponse(new ShareSetPropertiesOptions().setAccessTier(ShareAccessTier.HOT), null, null)
         then:
         def e = thrown(ShareStorageException)
         FileTestHelper.assertExceptionStatusCodeAndMessage(e, 404, ShareErrorCode.SHARE_NOT_FOUND)

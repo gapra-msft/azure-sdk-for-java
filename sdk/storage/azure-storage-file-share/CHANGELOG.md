@@ -1,7 +1,7 @@
 # Release History
 
 ## 12.7.0-beta.1 (Unreleased)
-
+- Added support to set access tier on a Share. Includes new options on ShareClient.create, ShareClient.setProperties, and ShareClient.getProperties.
 
 ## 12.6.0 (2020-08-13)
 - GA release for 2019-12-12 service version

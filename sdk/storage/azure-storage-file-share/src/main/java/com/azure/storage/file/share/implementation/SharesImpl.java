@@ -159,7 +159,7 @@ public final class SharesImpl {
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting Timeouts for File Service Operations.&lt;/a&gt;.
      * @param metadata A name-value pair to associate with a file storage object.
      * @param quota Specifies the maximum size of the share, in gigabytes.
-     * @param accessTier Specifies the access tier of the share. Possible values include: 'TransactionOptimized', 'Hot', 'Cold'.
+     * @param accessTier Specifies the access tier of the share. Possible values include: 'TransactionOptimized', 'Hot', 'Cool'.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @return a Mono which performs the network request upon subscription.
@@ -362,7 +362,7 @@ public final class SharesImpl {
      * @param shareName The name of the target share.
      * @param timeout The timeout parameter is expressed in seconds. For more information, see &lt;a href="https://docs.microsoft.com/en-us/rest/api/storageservices/Setting-Timeouts-for-File-Service-Operations?redirectedfrom=MSDN"&gt;Setting Timeouts for File Service Operations.&lt;/a&gt;.
      * @param quota Specifies the maximum size of the share, in gigabytes.
-     * @param accessTier Specifies the access tier of the share. Possible values include: 'TransactionOptimized', 'Hot', 'Cold'.
+     * @param accessTier Specifies the access tier of the share. Possible values include: 'TransactionOptimized', 'Hot', 'Cool'.
      * @param context The context to associate with this operation.
      * @throws IllegalArgumentException thrown if parameters fail the validation.
      * @return a Mono which performs the network request upon subscription.
