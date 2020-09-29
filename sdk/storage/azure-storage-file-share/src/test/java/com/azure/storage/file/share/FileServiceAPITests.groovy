@@ -3,21 +3,25 @@
 
 package com.azure.storage.file.share
 
-import com.azure.core.test.TestMode
+
 import com.azure.core.util.Context
 import com.azure.storage.common.StorageSharedKeyCredential
 import com.azure.storage.file.share.models.ListSharesOptions
 import com.azure.storage.file.share.models.ShareAccessTier
+
 import com.azure.storage.file.share.models.ShareCorsRule
 import com.azure.storage.file.share.models.ShareErrorCode
 import com.azure.storage.file.share.models.ShareItem
 import com.azure.storage.file.share.models.ShareMetrics
 import com.azure.storage.file.share.models.ShareProperties
+import com.azure.storage.file.share.models.ShareProtocolSettings
 import com.azure.storage.file.share.models.ShareRetentionPolicy
 import com.azure.storage.file.share.models.ShareServiceProperties
+import com.azure.storage.file.share.models.ShareSmbSettings
 import com.azure.storage.file.share.models.ShareStorageException
 import com.azure.storage.file.share.options.ShareCreateOptions
-import com.azure.storage.file.share.options.ShareSetPropertiesOptions
+
+import com.azure.storage.file.share.models.SmbMultichannel
 import spock.lang.Unroll
 
 import java.time.OffsetDateTime
@@ -187,24 +191,24 @@ class FileServiceAPITests extends APISpec {
         new ListSharesOptions().setIncludeMetadata(true).setIncludeSnapshots(true).setIncludeDeleted(true) | 5      | true            | true            | true
     }
 
-    def "List shares set access tier"() {
-        setup:
-        def shareName = generateShareName()
-        def share = primaryFileServiceClient.createShare(shareName)
-        share.setPropertiesWithResponse(new ShareSetPropertiesOptions().setAccessTier(ShareAccessTier.HOT), null, null)
-
-        when:
-        def shares = primaryFileServiceClient.listShares().iterator()
-
-        then:
-        for (def shareItem : shares) {
-            if (shareItem.getName() == shareName) {
-                assert ShareAccessTier.HOT.toString() == shareItem.getProperties().getAccessTier()
-                assert shareItem.getProperties().getAccessTierChangeTime()
-                assert "pending-from-transactionOptimized" == shareItem.getProperties().getAccessTierTransitionState()
-            }
-        }
-    }
+//    def "List shares set access tier"() {
+//        setup:
+//        def shareName = generateShareName()
+//        def share = primaryFileServiceClient.createShare(shareName)
+//        share.setPropertiesWithResponse(new ShareSetPropertiesOptions().setAccessTier(ShareAccessTier.HOT), null, null)
+//
+//        when:
+//        def shares = primaryFileServiceClient.listShares().iterator()
+//
+//        then:
+//        for (def shareItem : shares) {
+//            if (shareItem.getName() == shareName) {
+//                assert ShareAccessTier.HOT.toString() == shareItem.getProperties().getAccessTier()
+//                assert shareItem.getProperties().getAccessTierChangeTime()
+//                assert "pending-from-transactionOptimized" == shareItem.getProperties().getAccessTierTransitionState()
+//            }
+//        }
+//    }
 
     def "List shares with premium share"() {
         setup:
@@ -241,6 +245,30 @@ class FileServiceAPITests extends APISpec {
         def getPropertiesBeforeResponse = primaryFileServiceClient.getPropertiesWithResponse(null, null)
         def setPropertiesResponse = primaryFileServiceClient.setPropertiesWithResponse(updatedProperties, null, null)
         def getPropertiesAfterResponse = primaryFileServiceClient.getPropertiesWithResponse(null, null)
+
+        then:
+        FileTestHelper.assertResponseStatusCode(getPropertiesBeforeResponse, 200)
+        FileTestHelper.assertFileServicePropertiesAreEqual(originalProperties, getPropertiesBeforeResponse.getValue())
+        FileTestHelper.assertResponseStatusCode(setPropertiesResponse, 202)
+        FileTestHelper.assertResponseStatusCode(getPropertiesAfterResponse, 200)
+        FileTestHelper.assertFileServicePropertiesAreEqual(updatedProperties, getPropertiesAfterResponse.getValue())
+    }
+
+    def "Set and get properties premium"() {
+        given:
+        def originalProperties = premiumFileServiceClient.getProperties()
+        def retentionPolicy = new ShareRetentionPolicy().setEnabled(true).setDays(3)
+        def metrics = new ShareMetrics().setEnabled(true).setIncludeApis(false)
+            .setRetentionPolicy(retentionPolicy).setVersion("1.0")
+        def protocolSettings = new ShareProtocolSettings().setSmb(new ShareSmbSettings().setMultichannel(new SmbMultichannel().setEnabled(true)))
+        def updatedProperties = new ShareServiceProperties().setHourMetrics(metrics)
+            .setMinuteMetrics(metrics).setCors(new ArrayList<>())
+            .setProtocol(protocolSettings)
+
+        when:
+        def getPropertiesBeforeResponse = premiumFileServiceClient.getPropertiesWithResponse(null, null)
+        def setPropertiesResponse = premiumFileServiceClient.setPropertiesWithResponse(updatedProperties, null, null)
+        def getPropertiesAfterResponse = premiumFileServiceClient.getPropertiesWithResponse(null, null)
 
         then:
         FileTestHelper.assertResponseStatusCode(getPropertiesBeforeResponse, 200)

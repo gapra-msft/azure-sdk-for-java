@@ -46,8 +46,10 @@ public class TableClientBuilder {
     private String accountName;
     private RequestRetryOptions retryOptions = new RequestRetryOptions();
 
-
-    TableClientBuilder() {
+    /**
+     * Create a new `TableClientBuilder`
+     */
+    public TableClientBuilder() {
         policies = new ArrayList<>();
         httpLogOptions = new HttpLogOptions();
     }
@@ -98,7 +100,7 @@ public class TableClientBuilder {
      * @return a sync tableClient
      */
     public TableClient buildClient() {
-        return new TableClient(tableName, buildAsyncClient());
+        return new TableClient(buildAsyncClient());
     }
 
     /**

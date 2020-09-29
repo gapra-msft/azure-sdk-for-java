@@ -4,6 +4,7 @@ package com.azure.storage.file.share;
 
 import com.azure.core.util.polling.PollerFlux;
 import com.azure.storage.common.StorageSharedKeyCredential;
+import com.azure.storage.file.share.models.FileRange;
 import com.azure.storage.file.share.models.PermissionCopyModeType;
 import com.azure.storage.file.share.models.ShareFileCopyInfo;
 import com.azure.storage.file.share.models.ShareFileHttpHeaders;
@@ -11,7 +12,7 @@ import com.azure.storage.file.share.models.ShareFileProperties;
 import com.azure.storage.file.share.models.ShareFileRange;
 import com.azure.storage.file.share.models.NtfsFileAttributes;
 import com.azure.storage.file.share.models.ShareRequestConditions;
-import com.azure.storage.file.share.options.ShareFileListRangeOptions;
+import com.azure.storage.file.share.options.ShareFileListRangesDiffOptions;
 import com.azure.storage.file.share.sas.ShareFileSasPermission;
 import com.azure.storage.file.share.sas.ShareServiceSasSignatureValues;
 import reactor.core.publisher.Flux;
@@ -825,15 +826,35 @@ public class ShareFileAsyncJavaDocCodeSamples {
     }
 
     /**
-     * Generates a code sample for using {@link ShareFileAsyncClient#listRanges(ShareFileListRangeOptions)}
+     * Generates a code sample for using {@link ShareFileAsyncClient#listRangesDiff(String)}
      */
-    public void listRangesAsyncOptionalOverload() {
+    public void listRangesDiffAsync() {
         ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithSASToken();
-        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.listRanges#ShareFileListRangeOptions
-        shareFileAsyncClient.listRanges(new ShareFileListRangeOptions().setRange(new ShareFileRange(1024, 2048L)))
-            .subscribe(result -> System.out.printf("List ranges completed with start: %d, end: %d",
-                result.getStart(), result.getEnd()));
-        // END: com.azure.storage.file.share.ShareFileAsyncClient.listRanges#ShareFileListRangeOptions
+        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.listRangesDiff#String
+        final String prevSnapshot = "previoussnapshot";
+        shareFileAsyncClient.listRangesDiff(prevSnapshot).subscribe(response -> {
+            System.out.println("Valid Share File Ranges are:");
+            for (FileRange range : response.getRanges()) {
+                System.out.printf("Start: %s, End: %s%n", range.getStart(), range.getEnd());
+            }
+        });
+        // END: com.azure.storage.file.share.ShareFileAsyncClient.listRangesDiff#String
+    }
+
+    /**
+     * Generates a code sample for using {@link ShareFileAsyncClient#listRangesDiffWithResponse(ShareFileListRangesDiffOptions)}
+     */
+    public void listRangesDiffAsyncOptionalOverload() {
+        ShareFileAsyncClient shareFileAsyncClient = createAsyncClientWithSASToken();
+        // BEGIN: com.azure.storage.file.share.ShareFileAsyncClient.listRangesDiffWithResponse#ShareFileListRangesDiffOptions
+        shareFileAsyncClient.listRangesDiffWithResponse(new ShareFileListRangesDiffOptions("previoussnapshot")
+            .setRange(new ShareFileRange(1024, 2048L))).subscribe(response -> {
+                System.out.println("Valid Share File Ranges are:");
+                for (FileRange range : response.getValue().getRanges()) {
+                    System.out.printf("Start: %s, End: %s%n", range.getStart(), range.getEnd());
+                }
+            });
+        // END: com.azure.storage.file.share.ShareFileAsyncClient.listRangesDiffWithResponse#ShareFileListRangesDiffOptions
     }
 
     /**

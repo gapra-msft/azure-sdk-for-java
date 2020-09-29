@@ -4,7 +4,7 @@ package com.azure.resourcemanager.compute.implementation;
 
 import com.azure.resourcemanager.compute.models.VirtualMachine;
 import com.azure.resourcemanager.compute.models.VirtualMachineExtension;
-import com.azure.resourcemanager.compute.fluent.inner.VirtualMachineExtensionInner;
+import com.azure.resourcemanager.compute.fluent.models.VirtualMachineExtensionInner;
 import com.azure.resourcemanager.compute.fluent.VirtualMachineExtensionsClient;
 import com.azure.resourcemanager.resources.fluentcore.arm.ResourceUtils;
 import com.azure.resourcemanager.resources.fluentcore.arm.collection.implementation.ExternalChildResourcesCachedImpl;
@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -114,8 +115,8 @@ class VirtualMachineExtensionsImpl
     @Override
     protected List<VirtualMachineExtensionImpl> listChildResources() {
         List<VirtualMachineExtensionImpl> childResources = new ArrayList<>();
-        if (getParent().inner().resources() != null) {
-            for (VirtualMachineExtensionInner inner : getParent().inner().resources()) {
+        if (getParent().innerModel().resources() != null) {
+            for (VirtualMachineExtensionInner inner : getParent().innerModel().resources()) {
                 if (inner.name() == null) {
                     // This extension exists in the parent VM extension collection as a reference id.
                     inner.withLocation(getParent().regionName());
@@ -130,7 +131,12 @@ class VirtualMachineExtensionsImpl
                 }
             }
         }
-        return childResources;
+        return Collections.unmodifiableList(childResources);
+    }
+
+    @Override
+    protected Flux<VirtualMachineExtensionImpl> listChildResourcesAsync() {
+        return Flux.fromIterable(listChildResources());
     }
 
     @Override

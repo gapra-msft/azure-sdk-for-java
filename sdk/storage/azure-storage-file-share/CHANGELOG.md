@@ -1,7 +1,16 @@
 # Release History
 
 ## 12.7.0-beta.1 (Unreleased)
-- Added support to set access tier on a Share. Includes new options on ShareClient.create, ShareClient.setProperties, and ShareClient.getProperties.
+- Added support for the 2020-02-10 service version.
+- Added support to set access tier on a Share. Includes new options on ShareClient.create, ShareClient.setAccessTier, and ShareClient.getProperties.
+- Added support to getFileRanges on a previous snapshot by adding the getFileRangesDiff API. 
+- Added support to set whether or not smb multichannel is enabled.
+- Added support to lease shares and snapshot shares.
+- Added support to specify a lease id for share operations. 
+- Fixed a bug where getProperties on a file client would throw a HttpResponseException instead of ShareStorageException.
+- Fixed a bug where snapshot would be appended to a share snapshot instead of sharesnapshot.
+- Fixed a bug that would cause auth failures when building a client by passing an endpoint which had a sas token with protocol set to https,http
+- Fixed a bug where a custom application id in HttpLogOptions would not be added to the User Agent String.
 
 ## 12.6.0 (2020-08-13)
 - GA release for 2019-12-12 service version
@@ -149,4 +158,3 @@ demonstrate the new API.
     - `azure-storage-file` contains a `FileServiceClient`,  `FileServiceAsyncClient`, `ShareClient`, `ShareAsyncClient`, `DirectoryClient`, `DirectoryAsyncClient`, `FileClient` and `FileAsyncClient` for storage file operations.
 - Client instances are scoped to storage file service.
 - Reactive streams support using [Project Reactor](https://projectreactor.io/).
-

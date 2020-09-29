@@ -3,7 +3,6 @@
 
 package com.azure.storage.file.share
 
-import com.azure.core.exception.HttpResponseException
 import com.azure.core.exception.UnexpectedLengthException
 import com.azure.core.util.Context
 import com.azure.core.util.polling.SyncPoller
@@ -15,9 +14,10 @@ import com.azure.storage.file.share.models.ShareErrorCode
 import com.azure.storage.file.share.models.ShareFileCopyInfo
 import com.azure.storage.file.share.models.ShareFileHttpHeaders
 import com.azure.storage.file.share.models.ShareFileRange
+import com.azure.storage.file.share.models.ShareRequestConditions
 import com.azure.storage.file.share.models.ShareSnapshotInfo
 import com.azure.storage.file.share.models.ShareStorageException
-import com.azure.storage.file.share.options.ShareFileListRangeOptions
+import com.azure.storage.file.share.options.ShareFileListRangesDiffOptions
 import com.azure.storage.file.share.sas.ShareFileSasPermission
 import com.azure.storage.file.share.sas.ShareServiceSasSignatureValues
 import spock.lang.Ignore
@@ -106,13 +106,18 @@ class FileAPITests extends APISpec {
         primaryFileClient.exists()
 
         then:
-        def e = thrown(HttpResponseException)
+        def e = thrown(ShareStorageException)
         e.getResponse().getStatusCode() == 403
     }
 
     def "Create file"() {
         expect:
         FileTestHelper.assertResponseStatusCode(primaryFileClient.createWithResponse(1024, null, null, null, null, null, null), 201)
+    }
+
+    def "Create file 4TB"() {
+        expect:
+        FileTestHelper.assertResponseStatusCode(primaryFileClient.createWithResponse(4 * Constants.TB, null, null, null, null, null, null), 201)
     }
 
     def "Create file error"() {
@@ -229,6 +234,22 @@ class FileAPITests extends APISpec {
         downloadResponse.getDeserializedHeaders().getContentLength() == dataLength
 
         data == stream.toByteArray()
+    }
+
+    def "Upload Range 4TB"() {
+        given:
+        def fileSize = 4 * Constants.TB
+        primaryFileClient.create(fileSize)
+
+        when:
+        def uploadResponse = primaryFileClient.uploadWithResponse(defaultData, dataLength, fileSize - dataLength, null, null) /* Upload to end of file. */
+        def stream = new ByteArrayOutputStream()
+        def downloadResponse = primaryFileClient.downloadWithResponse(stream, new ShareFileRange(fileSize - dataLength, fileSize), true, null, null)
+
+        then:
+        FileTestHelper.assertResponseStatusCode(uploadResponse, 201)
+        FileTestHelper.assertResponseStatusCode(downloadResponse, 206)
+        downloadResponse.getDeserializedHeaders().getContentLength() == dataLength
     }
 
     def "Upload data error"() {
@@ -604,7 +625,7 @@ class FileAPITests extends APISpec {
         primaryFileClient.getProperties()
 
         then:
-        thrown(HttpResponseException)
+        thrown(ShareStorageException)
     }
 
     def "Set httpHeaders fpk"() {
@@ -773,7 +794,30 @@ class FileAPITests extends APISpec {
         FileTestHelper.deleteFilesIfExists(testFolder.getPath())
     }
 
-    def "List ranges prev snapshot"() {
+    def "List ranges diff"() {
+        given:
+        primaryFileClient.create(1024)
+        primaryFileClient.uploadWithResponse(new ByteArrayInputStream(FileTestHelper.getRandomBuffer(512)),512, 512, null, null)
+        def snapInfo = shareClient.createSnapshot()
+        primaryFileClient.uploadWithResponse(new ByteArrayInputStream(FileTestHelper.getRandomBuffer(512)),512, 0, null, null)
+
+        primaryFileClient.clearRangeWithResponse(512, 512, null, null)
+
+        when:
+        def response = primaryFileClient.listRangesDiffWithResponse(new ShareFileListRangesDiffOptions(snapInfo.getSnapshot()).setRange(new ShareFileRange(0, 1024)), null, null)
+
+        then:
+        response.getValue().getRanges().size() == 1
+        response.getValue().getRanges().get(0).getStart() == 0
+        response.getValue().getRanges().get(0).getEnd() == 511
+        response.getValue().getClearRanges().size() == 1
+        response.getValue().getClearRanges().get(0).getStart() == 512
+        response.getValue().getClearRanges().get(0).getEnd() == 1023
+        validateBasicHeaders(response.getHeaders())
+        Integer.parseInt(response.getHeaders().getValue("x-ms-content-length")) == 1024
+    }
+
+    def "List ranges diff with range"() {
         given:
         def fileName = testResourceName.randomName("file", 60)
         primaryFileClient.create(1024 + dataLength)
@@ -784,17 +828,62 @@ class FileAPITests extends APISpec {
 
         primaryFileClient.uploadWithResponse(defaultData, dataLength, 1024, null, null)
 
-        expect:
-        primaryFileClient.listRanges(new ShareFileListRangeOptions().setPreviousSnapshot(snapInfo.getSnapshot()), null, null).each {
-            assert it.getStart() == 1024 /* These are the changes since the previous snapshot. */
-            assert it.getEnd() == 1030
-        }
+        when:
+        def range = primaryFileClient.listRangesDiffWithResponse(new ShareFileListRangesDiffOptions(snapInfo.getSnapshot()).setRange(new ShareFileRange(1025, 1026)), null, null).getValue().getRanges().get(0)
+
+        then:
+        range.getStart() == 1025
+        range.getEnd() == 1026
 
         cleanup:
         FileTestHelper.deleteFilesIfExists(testFolder.getPath())
     }
 
-    def "List ranges prev snapshot fail"() {
+    def "List ranges diff lease"() {
+        given:
+        def fileName = testResourceName.randomName("file", 60)
+        primaryFileClient.create(1024 + dataLength)
+        def uploadFile = FileTestHelper.createRandomFileWithLength(1024, testFolder, fileName)
+        primaryFileClient.uploadFromFile(uploadFile)
+
+        def snapInfo = shareClient.createSnapshot()
+
+        primaryFileClient.uploadWithResponse(defaultData, dataLength, 1024, null, null)
+        def leaseId = createLeaseClient(primaryFileClient).acquireLease()
+
+        when:
+        def range = primaryFileClient.listRangesDiffWithResponse(new ShareFileListRangesDiffOptions(snapInfo.getSnapshot()).setRequestConditions(new ShareRequestConditions().setLeaseId(leaseId)), null, null).getValue().getRanges().get(0)
+
+        then:
+        range.getStart() == 1024
+        range.getEnd() == 1030
+
+        cleanup:
+        FileTestHelper.deleteFilesIfExists(testFolder.getPath())
+    }
+
+    def "List ranges diff lease fail"() {
+        given:
+        def fileName = testResourceName.randomName("file", 60)
+        primaryFileClient.create(1024 + dataLength)
+        def uploadFile = FileTestHelper.createRandomFileWithLength(1024, testFolder, fileName)
+        primaryFileClient.uploadFromFile(uploadFile)
+
+        def snapInfo = shareClient.createSnapshot()
+
+        primaryFileClient.uploadWithResponse(defaultData, dataLength, 1024, null, null)
+
+        when:
+        primaryFileClient.listRangesDiffWithResponse(new ShareFileListRangesDiffOptions(snapInfo.getSnapshot()).setRequestConditions(new ShareRequestConditions().setLeaseId(getRandomUUID())), null, null).getValue().getRanges().get(0)
+
+        then:
+        thrown(ShareStorageException)
+
+        cleanup:
+        FileTestHelper.deleteFilesIfExists(testFolder.getPath())
+    }
+
+    def "List ranges diff fail"() {
         given:
         def fileName = testResourceName.randomName("file", 60)
         primaryFileClient.create(1024)
@@ -802,13 +891,10 @@ class FileAPITests extends APISpec {
         primaryFileClient.uploadFromFile(uploadFile)
 
         when:
-        primaryFileClient.listRanges(new ShareFileListRangeOptions().setPreviousSnapshot("2020-08-07T16:58:02.0000000Z"), null, null).each {
-            assert it.getStart() == 0
-            assert it.getEnd() == 511
-        }
+        primaryFileClient.listRangesDiffWithResponse(new ShareFileListRangesDiffOptions("2020-08-07T16:58:02.0000000Z"), null, null).getValue().getRanges().get(0)
 
         then:
-        def e = thrown(ShareStorageException)
+        thrown(ShareStorageException)
 
         cleanup:
         FileTestHelper.deleteFilesIfExists(testFolder.getPath())
