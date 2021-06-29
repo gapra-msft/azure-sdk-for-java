@@ -30,7 +30,7 @@ module com.azure.storage.blob {
         com.azure.storage.blob.changefeed,
         com.fasterxml.jackson.databind,
         com.azure.storage.blob.batch,
-        com.azure.storage.blob.nio;
+        com.azure.storage.blob.nio, com.azure.storage.data.movement;
 
     opens com.azure.storage.blob.models to
         com.fasterxml.jackson.databind,

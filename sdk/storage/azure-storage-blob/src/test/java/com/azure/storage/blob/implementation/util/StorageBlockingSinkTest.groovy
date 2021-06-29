@@ -96,7 +96,7 @@ class StorageBlockingSinkTest extends Specification {
     @Unroll
     def "delayed producer, consumer"() {
         setup:
-        def blockingSink = new StorageBlockingSink()
+        def blockingSink = new StorageBlockingSink<ByteBuffer>()
         def delay = 1000
 
         when:

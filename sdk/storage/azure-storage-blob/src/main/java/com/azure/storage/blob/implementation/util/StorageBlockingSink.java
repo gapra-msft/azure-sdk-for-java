@@ -13,18 +13,18 @@ import java.util.concurrent.LinkedBlockingQueue;
  * This is a lightweight wrapper around Sinks.Many to implement a Sink backed by a LinkedBlockingQueue, effectively
  * implementing a BlockingSink.
  */
-public final class StorageBlockingSink {
+public final class StorageBlockingSink<T> {
     private final ClientLogger logger = new ClientLogger(StorageBlockingSink.class);
 
     /*
     Note: Though this is used only by BlockBlobOutputStream, the decision was made to abstract this type out to make
     testing easier.
     */
-    private final Sinks.Many<ByteBuffer> writeSink;
-    private final LinkedBlockingQueue<ByteBuffer> writeLimitQueue;
+    private final Sinks.Many<T> writeSink;
+    private final LinkedBlockingQueue<T> writeLimitQueue;
 
     /* Overrided implementation of LinkedBlockingQueue to effectively implement a true BlockingSink. */
-    private static final class ProducerBlockingQueue<ByteBuffer> extends LinkedBlockingQueue<ByteBuffer> {
+    private static final class ProducerBlockingQueue<T> extends LinkedBlockingQueue<T> {
         private final transient ClientLogger logger;
         private static final long serialVersionUID = 1;
 
@@ -38,7 +38,7 @@ public final class StorageBlockingSink {
         space in the queue. Since this code is called from user thread on BlobOutputStream.write and blocking on that
         API until data can be written is ok, this is the simplest way to get desired behavior. */
         @Override
-        public boolean offer(ByteBuffer o) {
+        public boolean offer(T o) {
             try {
                 super.put(o);
                 return true;
@@ -66,7 +66,7 @@ public final class StorageBlockingSink {
      *
      * @param buffer {@link ByteBuffer} to emit.
      */
-    public void emitNext(ByteBuffer buffer) {
+    public void emitNext(T buffer) {
         try {
             this.writeSink.tryEmitNext(buffer).orThrow();
             /* Here are different cases that tryEmitNext can return.
@@ -97,7 +97,7 @@ public final class StorageBlockingSink {
     /**
      * @return The Flux that represents the Sink.
      */
-    public Flux<ByteBuffer> asFlux() {
+    public Flux<T> asFlux() {
         return this.writeSink.asFlux();
     }
 

@@ -199,7 +199,7 @@ public abstract class BlobOutputStream extends StorageOutputStream {
 
         private final Lock lock;
         private final Condition transferComplete;
-        private final StorageBlockingSink sink;
+        private final StorageBlockingSink<ByteBuffer> sink;
 
         boolean complete;
 
@@ -213,7 +213,7 @@ public abstract class BlobOutputStream extends StorageOutputStream {
 
             this.lock = new ReentrantLock();
             this.transferComplete = lock.newCondition();
-            this.sink = new StorageBlockingSink();
+            this.sink = new StorageBlockingSink<>();
 
             Flux<ByteBuffer> body = this.sink.asFlux();
 
